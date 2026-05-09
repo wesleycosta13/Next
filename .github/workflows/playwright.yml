@@ -1,4 +1,4 @@
-name: Playwright Tests
+name: Playwright E2E Tests
 
 on:
   push:
@@ -14,40 +14,60 @@ on:
 
 jobs:
   test:
+    name: Run E2E Tests
     timeout-minutes: 60
     runs-on: ubuntu-latest
 
     steps:
-    - name: 📥 Checkout
+    - name: 📥 Checkout repository
       uses: actions/checkout@v4
 
-    - name: ⚙️ Setup Node
+    - name: ⚙️ Setup Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: lts/*
+        node-version: 20
 
-    - name: 📦 Instalar dependências
-      run: npm ci
+    - name: 📄 Configurar Variáveis de Ambiente (Docker)
+      working-directory: ./Next-Event
+      run: cp .env.example .env
 
-    - name: 🎭 Instalar browsers
-      run: npx playwright install --with-deps
-
-    # 🔥 AQUI ESTÁ O PONTO PRINCIPAL
-    - name: 🐳 Subir Docker (frontend + backend + db)
+    - name: 🐳 Subir Docker (Frontend + Backend + DB)
+      working-directory: ./Next-Event
       run: docker compose up -d
 
-    - name: ⏳ Aguardar aplicação subir
-      run: npx wait-on http://localhost:4000
+    - name: 📦 Instalar dependências (E2E)
+      working-directory: ./Next-Event/e2e
+      run: npm ci
 
-    - name: 🚀 Rodar testes
+    - name: 🎭 Instalar browsers do Playwright
+      working-directory: ./Next-Event/e2e
+      run: npx playwright install --with-deps
+
+    - name: ⏳ Aguardar aplicação subir
+      working-directory: ./Next-Event/e2e
+      run: |
+        echo "Aguardando serviços iniciarem na porta 4000..."
+        npx -y wait-on http://localhost:4000 --timeout 120000
+
+    - name: 🚀 Rodar testes Playwright
+      working-directory: ./Next-Event/e2e
       run: npx playwright test
       env:
         BASE_URL: ${{ github.event.inputs.base_url || 'http://localhost:4000' }}
 
-    - name: 📊 Upload relatório
+    - name: 📋 Logs do Docker Compose (Em caso de falha)
+      if: failure()
+      working-directory: ./Next-Event
+      run: |
+        echo "--- STATUS DOS CONTAINERS ---"
+        docker ps
+        echo "--- LOGS DO DOCKER COMPOSE ---"
+        docker compose logs --tail=200
+
+    - name: 📊 Upload do Relatório (Playwright)
       if: ${{ !cancelled() }}
       uses: actions/upload-artifact@v4
       with:
         name: playwright-report
-        path: playwright-report/
+        path: ./Next-Event/e2e/playwright-report/
         retention-days: 30
