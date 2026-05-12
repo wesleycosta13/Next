@@ -35,18 +35,31 @@ export default defineConfig({
 
   /* Configure projects for major browsers */
   projects: [
+    // ─── Projeto exclusivo para testes de API ───────────────────────────
+    {
+      name: 'api',
+      testMatch: '**/tests/api/**/*.spec.ts',
+      use: {
+        baseURL: process.env.API_URL || 'http://localhost:3000',
+      },
+    },
+
+    // ─── Projetos de browser (apenas testes de UI) ─────────────────────
     {
       name: 'chromium',
+      testMatch: '**/tests/ui/**/*.spec.ts',
       use: { ...devices['Desktop Chrome'] },
     },
 
     {
       name: 'firefox',
+      testMatch: '**/tests/ui/**/*.spec.ts',
       use: { ...devices['Desktop Firefox'] },
     },
 
     {
       name: 'webkit',
+      testMatch: '**/tests/ui/**/*.spec.ts',
       use: { ...devices['Desktop Safari'] },
     },
 

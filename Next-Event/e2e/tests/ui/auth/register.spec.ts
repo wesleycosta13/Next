@@ -1,5 +1,5 @@
-import { test, expect } from '../../fixtures/testBase';
-import { gerarDadosUsuario } from '../../utils/dataFactory';
+import { test, expect } from '../../../fixtures/testBase';
+import { gerarDadosUsuario } from '../../../utils/dataFactory';
 
 test.describe('Cadastro de Usuário', () => {
 
