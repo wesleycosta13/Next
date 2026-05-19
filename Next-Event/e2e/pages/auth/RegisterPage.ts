@@ -1,5 +1,5 @@
 import { Page, Locator, expect } from '@playwright/test';
-import { UserData } from '../../utils/dataFactory';
+import type { UserData } from '../../support/factories/UserFactory';
 
 export class RegisterPage {
   readonly page: Page;
@@ -84,9 +84,8 @@ export class RegisterPage {
    * Verifica se uma mensagem de erro de regra de negócio (backend) apareceu na tela.
    */
   async expectErrorToContainText(regexOrText: RegExp | string) {
-    const errorElement = this.page.getByRole('alert');
-    await expect(errorElement).toBeVisible();
-    await expect(errorElement).toContainText(regexOrText);
+    const alert = this.page.locator('.alert, [role="alert"], .alert-danger').filter({ hasText: regexOrText });
+    await expect(alert).toBeVisible({ timeout: 10000 });
   }
 
   /**

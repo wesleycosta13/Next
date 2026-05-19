@@ -1,7 +1,11 @@
-import { gerarDadosUsuario } from '../utils/dataFactory';
+import { UserFactory } from '../support/factories/UserFactory';
 
-export function buildUserPayload(overrides: Record<string, any> = {}) {
-  const baseUser = gerarDadosUsuario();
+/**
+ * Builder para payloads de usuário.
+ * Facilita a criação de massas de teste com overrides específicos.
+ */
+export function buildUserPayload(overrides: any = {}) {
+  const baseUser = UserFactory.generateUser();
   
   return {
     nome: baseUser.nome,
