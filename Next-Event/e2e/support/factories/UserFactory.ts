@@ -14,8 +14,9 @@ export class UserFactory {
    */
   static generateUser(): UserData {
     const timestamp = Date.now().toString();
-    const matriculaUnica = timestamp.slice(-8);
-    const cpfUnico = timestamp.padStart(11, '0').slice(-11);
+    const rand = Math.floor(Math.random() * 1000000).toString().padStart(6, '0');
+    const matriculaUnica = (timestamp.slice(-5) + rand.slice(-3)).padStart(8, '0');
+    const cpfUnico = (timestamp.slice(-5) + rand.slice(-6)).padStart(11, '0');
 
     const nome = faker.person.fullName();
     

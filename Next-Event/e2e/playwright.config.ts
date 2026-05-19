@@ -10,6 +10,8 @@ require('dotenv').config({ path: path.resolve(__dirname, '.env') });
 /**
  * See https://playwright.dev/docs/test-configuration.
  */
+console.log("DEBUG PLAYWRIGHT CONFIG - process.env.BASE_URL:", process.env.BASE_URL);
+
 export default defineConfig({
   testDir: './tests',
   /* Run tests in files in parallel */

@@ -1,0 +1,1 @@
+This is a dummy text file. It is invalid for certificate uploads.
