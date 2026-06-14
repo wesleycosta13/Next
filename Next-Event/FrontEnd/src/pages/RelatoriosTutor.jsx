@@ -98,8 +98,12 @@ function RelatoriosTutor() {
         <div style={{ backgroundColor: '#f8f9fa', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
             <Navbar bg="white" expand="lg" className="shadow-sm py-3">
                 <Container fluid className="px-5">
-                    <Navbar.Brand href="#" className="d-flex align-items-center">
-                        <Image src={LogoNextCertify} alt="Logo" height="40" />
+                    <Navbar.Brand onClick={() => navigate("/coordenador")} style={{ cursor: 'pointer' }}>
+                        <Image
+                            src={LogoNextCertify}
+                            alt="Logo NextCertify"
+                            height="40"
+                        />
                     </Navbar.Brand>
                     <Navbar.Toggle aria-controls="basic-navbar-nav" />
                     <Navbar.Collapse id="basic-navbar-nav">

@@ -1,20 +1,23 @@
 import { Container, Row, Col, Card, Button, Navbar, Nav, Badge, Image } from 'react-bootstrap';
-import { FaBell, FaUserCircle, FaCertificate, FaClipboardCheck, FaPen, FaSignOutAlt } from 'react-icons/fa';
-import { useNavigate } from 'react-router-dom';
 import LogoNextCertify from '../img/NextCertify.png';
-import { useState, useEffect } from 'react';
+import { FaBell, FaUserCircle, FaCertificate, FaClipboardCheck, FaPen, FaSignOutAlt } from 'react-icons/fa';
+import { FaUserGear } from 'react-icons/fa6';
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import useAuthenticatedUser from '../hooks/useAuthenticatedUser';
 
-function HomeAluno() {
+function HomeBolsista() {
     const navigate = useNavigate();
     const { usuario, userRole, handleLogout } = useAuthenticatedUser();
+
+    const [expanded, setExpanded] = useState(false);
 
     const gradientStyle = {
         background: 'linear-gradient(135deg, #005bea 0%, #00c6fb 100%)',
         color: 'white'
     };
 
-    if (!usuario || userRole(usuario.role).toLowerCase() !== 'aluno') {
+    if (!usuario || userRole(usuario.role).toLowerCase() !== 'bolsista') {
         return <div className="p-5 text-center">Verificando permissões...</div>;
     }
 
@@ -32,19 +35,21 @@ function HomeAluno() {
                     </Navbar.Brand>
 
                     <Navbar.Toggle aria-controls="basic-navbar-nav" />
+
                     <Navbar.Collapse id="basic-navbar-nav">
-                        <Nav className="text-center mx-auto fw-medium">
-                            <Nav.Link className="mx-2 text-dark fw-bold">Home</Nav.Link>
+                        <Nav className="text-center mx-auto fw-medium mb-2">
+                            <Nav.Link onClick={() => navigate('/bolsista')} className="mx-2 text-dark fw-bold">Home</Nav.Link>
                             <Nav.Link onClick={() => navigate('/meus-certificados')} className="mx-2 text-dark">Certificados</Nav.Link>
                             <Nav.Link onClick={() => navigate('/avaliacao-tutoria')} className="mx-2 text-dark">Avaliação Tutoria</Nav.Link>
                         </Nav>
-                        <div className="d-flex align-items-center gap-3">
+
+                        <div className="d-flex justify-content-center align-items-center gap-3">
                             <FaBell size={20} className="text-primary" style={{ cursor: 'pointer' }} />
                             <div className="d-flex align-items-center gap-2">
                                 <FaUserCircle size={32} className="text-primary" />
-                                <span className="fw-bold text-dark">{usuario.nome}</span>
+                                <span className="fw-bold text-dark">{usuario?.nome}</span>
                             </div>
-                            <Button variant="outline-danger" size="sim" className="d-flex align-items-center gap-2" onClick={handleLogout}><FaSignOutAlt size={16} /> Sair</Button>
+                            <Button variant="outline-danger" size="sm" className="d-flex align-items-center gap-2" onClick={handleLogout}><FaSignOutAlt size={16} /> Sair</Button>
                         </div>
                     </Navbar.Collapse>
                 </Container>
@@ -59,9 +64,10 @@ function HomeAluno() {
                                 <FaUserCircle size={80} />
                             </div>
                             <div>
-                                <h2 className="mb-1 fw-bold">{usuario.nome}</h2>
-                                <Badge bg="light" text="primary" className="mb-2 px-3 py-1">{userRole(usuario.role)}</Badge>
-                                {/* <p className="mb-0 text-light">Matrícula: {usuario.matricula}</p> */}
+                                <h2 className="mb-1 fw-bold">{usuario?.nome}</h2>
+                                {userRole(usuario?.role).toLowerCase() === "bolsista" &&
+                                    <Badge bg="light" text="primary" className="mb-2 px-3 py-1">Aluno</Badge>
+                                }
                             </div>
                         </Col>
                         <Col md={4} className="text-md-end mt-3 mt-md-0">
@@ -82,6 +88,7 @@ function HomeAluno() {
                 </div>
 
                 <Row className="g-4">
+
                     <Col md={6}>
                         <Card className="h-100 border-0 shadow-sm rounded-4 p-4">
                             <Card.Body>
@@ -136,4 +143,4 @@ function HomeAluno() {
     );
 }
 
-export default HomeAluno;
+export default HomeBolsista;

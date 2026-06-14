@@ -81,8 +81,12 @@ function AlunosTutor() {
 
             <Navbar bg="white" expand="lg" className="shadow-sm py-3">
                 <Container fluid className="px-5">
-                    <Navbar.Brand href="#" className="d-flex align-items-center">
-                        <Image src={LogoNextCertify} alt="Logo" height="40" />
+                    <Navbar.Brand onClick={() => navigate("/home-tutor")} style={{ cursor: 'pointer' }} className="d-flex align-items-center">
+                        <Image
+                            src={LogoNextCertify}
+                            alt="Logo NextCertify"
+                            height="40"
+                        />
                     </Navbar.Brand>
                     <Navbar.Toggle aria-controls="basic-navbar-nav" />
                     <Navbar.Collapse id="basic-navbar-nav">

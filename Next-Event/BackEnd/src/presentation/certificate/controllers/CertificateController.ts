@@ -14,6 +14,7 @@ import { IPDFProcessor } from '../../../domain/certificate/services/IPDFProcesso
 import { SendCertificateValidationNotificationUseCase } from '../../../application/notification/use-cases/SendCertificateValidationNotificationUseCase';
 import { CreateNotificationUseCase } from '../../../application/notification/use-cases/CreateNotificationUseCase';
 import { PostgresNotificationRepository } from '../../../infrastructure/notification/repositories/PostgresNotificationRepository';
+import { CertificateValidator } from '../../../application/certificate/validators/CertificateValidator';
 
 export class CertificateController {
   private readonly createCertificateUseCase: CreateCertificateUseCase;
@@ -44,6 +45,12 @@ export class CertificateController {
   async create(request: Request, response: Response): Promise<Response> {
     try {
       const { id: userId } = (request as AuthenticatedRequest).user;
+      
+      const error = CertificateValidator.validate(request.body);
+      if (error) {
+        return response.status(400).json({ error });
+      }
+
       const certificate = await this.createCertificateUseCase.execute({
         ...request.body,
         userId,
@@ -173,6 +180,20 @@ export class CertificateController {
       }
 
       const { title, description, institution, workload, startDate, endDate, category } = req.body;
+
+      const error = CertificateValidator.validate({
+        title,
+        description,
+        institution,
+        workload,
+        startDate,
+        endDate,
+        category
+      });
+
+      if (error) {
+        return res.status(400).json({ error });
+      }
 
       const certificate = await this.uploadCertificateUseCase.execute({
         userId: req.user.id,

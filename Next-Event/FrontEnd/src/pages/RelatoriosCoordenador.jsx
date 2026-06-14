@@ -62,11 +62,11 @@ function RelatoriosCoordenador() {
             semestre: a.semestre || "2025.1"
         }));
 
-        const contagemTipos = { 
-            'Estudo Individual': 0, 
-            'Eventos': 0, 
+        const contagemTipos = {
+            'Estudo Individual': 0,
+            'Eventos': 0,
             'Monitoria': 0,
-            'Outros': 0 
+            'Outros': 0
         };
 
         certificadosGlobais.forEach(cert => {
@@ -239,7 +239,13 @@ function RelatoriosCoordenador() {
         <div style={{ backgroundColor: '#f8f9fa', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
             <Navbar bg="white" expand="lg" className="shadow-sm py-3 mb-4">
                 <Container fluid className="px-5">
-                    <Navbar.Brand href="#"><Image src={LogoNextCertify} alt="Logo" height="40" /></Navbar.Brand>
+                    <Navbar.Brand onClick={() => navigate("/coordenador")} style={{ cursor: 'pointer' }}>
+                        <Image
+                            src={LogoNextCertify}
+                            alt="Logo NextCertify"
+                            height="40"
+                        />
+                    </Navbar.Brand>
                     <Navbar.Toggle aria-controls="basic-navbar-nav" />
                     <Navbar.Collapse id="basic-navbar-nav">
                         <Nav className="text-center mx-auto fw-medium">

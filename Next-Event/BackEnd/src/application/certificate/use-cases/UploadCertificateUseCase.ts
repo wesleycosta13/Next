@@ -4,6 +4,7 @@ import { CreateCertificateDTO } from '../dtos/CreateCertificateDTO';
 import { IPDFProcessor } from '../../../domain/certificate/services/IPDFProcessor';
 import { IStorageService } from '../../../domain/certificate/services/IStorageService';
 import { SetReferenceMonthUseCase } from './SetReferenceMonthUseCase';
+import { CertificateValidator } from '../validators/CertificateValidator';
 
 export class UploadCertificateUseCase {
   constructor(
@@ -18,7 +19,7 @@ export class UploadCertificateUseCase {
       const reference = await setReferenceUseCase.getCurrentReference();
 
       if (!reference) {
-        throw new Error('Reference month not set by admin');
+        throw new Error("Período de envio não foi definido pelo coordenador");
       }
 
       const filePath = await this.storageService.uploadFile(data.file);
@@ -42,8 +43,8 @@ export class UploadCertificateUseCase {
         endDate = new Date(pdfInfo.year, pdfInfo.endMonth || pdfInfo.month, 0);
 
       } else {
-        startDate = data.startDate ? new Date(data.startDate) : new Date(reference.year, reference.month - 1, 1);
-        endDate = data.endDate ? new Date(data.endDate) : new Date(reference.year, reference.month, 0);
+        startDate = data.startDate ? (CertificateValidator.parseDate(data.startDate) || new Date(data.startDate)) : new Date(reference.year, reference.month - 1, 1);
+        endDate = data.endDate ? (CertificateValidator.parseDate(data.endDate) || new Date(data.endDate)) : new Date(reference.year, reference.month, 0);
       }
 
       const certificate = new Certificate({
@@ -64,9 +65,9 @@ export class UploadCertificateUseCase {
       return savedCertificate;
     } catch (error) {
       if (error instanceof Error) {
-        throw new Error('Failed to process certificate: ' + error.message);
+        throw new Error('Erro ao enviar certificado: ' + error.message);
       }
-      throw new Error('Failed to process certificate');
+      throw new Error('Erro ao enviar certificado');
     }
   }
 } 
