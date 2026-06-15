@@ -39,13 +39,15 @@ export class DbHelper {
       const bolsistaId = bolsistaRes.rows[0]?.id;
       const tutorId = tutorRes.rows[0]?.id;
 
-      // 2. Deletar vínculos de alocação de tutor
+      // 2. Deletar vínculos de alocação de tutor e formulários de acompanhamento
       if (bolsistaId) {
         await pool.query('DELETE FROM "alocar_tutor_aluno" WHERE "bolsistaId" = $1', [bolsistaId]);
         await pool.query('DELETE FROM "certificado" WHERE "bolsistaId" = $1', [bolsistaId]);
+        await pool.query('DELETE FROM "form_acompanhamento" WHERE "bolsistaId" = $1', [bolsistaId]);
       }
       if (tutorId) {
         await pool.query('DELETE FROM "alocar_tutor_aluno" WHERE "tutorId" = $1', [tutorId]);
+        await pool.query('DELETE FROM "form_acompanhamento" WHERE "tutorId" = $1', [tutorId]);
       }
 
       // 3. Deletar avaliações de tutoria associadas
