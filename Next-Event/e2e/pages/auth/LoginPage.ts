@@ -23,6 +23,8 @@ export class LoginPage {
     await this.emailInput.fill(email);
     await this.senhaInput.fill(senha);
     await this.loginButton.click();
+    // Esperar a redireção após login bem-sucedido
+    await this.page.waitForURL(/\/(home|coordenador|bolsista|tutor|)\/?$/, { timeout: 15000 });
   }
 
   /**

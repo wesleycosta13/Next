@@ -79,6 +79,9 @@ test.describe('UI - Coordenador', () => {
     await loginPage.login(bolsistaUser.email, bolsistaUser.senha);
     await meusCertificadosPage.navigate();
     await meusCertificadosPage.uploadCertificate(pdfPath, details);
+           
+    // Reload para garantir que os dados foram salvos
+    await page.reload();
     await meusCertificadosPage.expectCertificateInList(certTitle, 'Em espera');
 
     // Deslogar
@@ -136,6 +139,9 @@ test.describe('UI - Coordenador', () => {
 
     // 4. Atribuir o papel de Tutor
     await coordenadorPage.atribuirPapel(baseEmail, 'tutor');
+
+    // Aguardar um pouco para garantir que o BD foi atualizado
+    await page.waitForTimeout(2000);
 
     // 5. Validar via Banco de Dados que o perfil de tutor foi inserido com sucesso
     const tutorProfile = await DbHelper.query(

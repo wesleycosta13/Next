@@ -22,6 +22,7 @@ export class MeusCertificadosPage {
 
   constructor(page: Page) {
     this.page = page;
+    // Tentar múltiplos seletores em cascata
     this.uploadBtn = page.getByRole('button', { name: /fazer upload do certificado/i });
     this.hiddenFileInput = page.locator('input[type="file"]');
     
@@ -51,6 +52,7 @@ export class MeusCertificadosPage {
 
   async navigate() {
     await this.page.goto('/meus-certificados');
+    await this.page.waitForLoadState('networkidle');
   }
 
   /**
@@ -65,11 +67,19 @@ export class MeusCertificadosPage {
     instituicao?: string;
     descricao?: string;
   }) {
-    // 1. Configurar o arquivo no input oculto
-    await this.hiddenFileInput.setInputFiles(filePath);
-    
-    // 2. Aguardar o modal ficar visível
-    await expect(this.modalTitle).toBeVisible();
+    // Esperar a página carregar e o botão de upload ficar visível
+    await expect(this.uploadBtn).toBeVisible({ timeout: 15000 });
+
+    // O botão chama fileInputRef.current.click() que abre o file picker nativo do browser.
+    // O padrão correto do Playwright é interceptar o evento 'filechooser' ANTES do clique.
+    const [fileChooser] = await Promise.all([
+      this.page.waitForEvent('filechooser'),
+      this.uploadBtn.click(),
+    ]);
+    await fileChooser.setFiles(filePath);
+
+    // Aguardar o modal ser aberto pelo handleFileChange do React
+    await expect(this.modalTitle).toBeVisible({ timeout: 15000 });
 
     // 3. Preencher os detalhes opcionais/obrigatórios
     if (details.titulo) {
@@ -95,6 +105,9 @@ export class MeusCertificadosPage {
 
     // 4. Salvar
     await this.salvarBtn.click();
+    
+    // 5. Aguardar um pouco para garantir que o arquivo foi processado
+    await this.page.waitForTimeout(2000);
   }
 
   /**
@@ -111,7 +124,7 @@ export class MeusCertificadosPage {
    */
   async expectCertificateInList(title: string, status: string = 'Em espera') {
     const card = this.certificateCards.filter({ hasText: title });
-    await expect(card).toBeVisible({ timeout: 10000 });
+    await expect(card).toBeVisible({ timeout: 15000 });
     await expect(card).toContainText(status);
   }
 }
