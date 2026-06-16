@@ -108,6 +108,84 @@ test.describe('API - Gerenciamento de Certificados', () => {
       // Limpar
       await certificateClient.deleteCertificate(token, uploadedCert.id);
     });
+
+    test('Deve permitir que um Coordenador aprove ou reprove certificados @smoke', async ({ certificateClient, userClient, cleanupService }) => {
+      // 1. Bolsista faz upload de um certificado
+      const details = {
+        titulo: `API Cert Coord ${Date.now()}`,
+        categoria: 'EVENTOS' as const,
+        startDate: '2025-05-01',
+        endDate: '2025-05-15',
+        horas: '40',
+        instituicao: 'UFC',
+        descricao: 'Validação por Coordenador API',
+      };
+
+      const uploadRes = await certificateClient.uploadCertificate(token, pdfPath, details);
+      expect(uploadRes.status()).toBe(201);
+      const cert = await uploadRes.json();
+
+      // 2. Criar e logar com perfil de Coordenador
+      const coordEmail = `coord_api_${Date.now()}@test.com`;
+      cleanupService.addEmail(coordEmail);
+      const coordPayload = buildUserPayload({
+        email: coordEmail,
+        bolsista: null,
+        tutor: null,
+        coordenador: {
+          area: 'Tecnologia',
+          nivel: 'Senior'
+        }
+      });
+      const regCoord = await userClient.createUser(coordPayload);
+      expect(regCoord.ok()).toBeTruthy();
+
+      const loginCoord = await userClient.login({
+        email: coordEmail,
+        senha: coordPayload.senha
+      });
+      expect(loginCoord.ok()).toBeTruthy();
+      const loginCoordBody = await loginCoord.json();
+      const coordToken = loginCoordBody.token;
+
+      // 3. Coordenador aprova o certificado
+      const approveRes = await certificateClient.updateStatus(coordToken, cert.id, 'approved');
+      expect(approveRes.status()).toBe(200);
+
+      // Validar status no banco
+      const checkApprove = await DbHelper.query('SELECT status FROM "certificado" WHERE id = $1', [cert.id]);
+      expect(checkApprove.rows[0].status).toBe('APROVADO');
+
+      // 4. Coordenador rejeita o certificado
+      const rejectRes = await certificateClient.updateStatus(coordToken, cert.id, 'rejected');
+      expect(rejectRes.status()).toBe(200);
+
+      // Validar status no banco
+      const checkReject = await DbHelper.query('SELECT status FROM "certificado" WHERE id = $1', [cert.id]);
+      expect(checkReject.rows[0].status).toBe('REJEITADO');
+
+      // Limpar certificado
+      await certificateClient.deleteCertificate(token, cert.id);
+    });
+
+    test('Deve impedir que um Bolsista altere o status de um certificado (403 Forbidden)', async ({ certificateClient }) => {
+      // 1. Bolsista faz upload de um certificado
+      const details = {
+        titulo: `API Cert Bolsista Tenta Aprovar ${Date.now()}`,
+        categoria: 'EVENTOS' as const,
+      };
+
+      const uploadRes = await certificateClient.uploadCertificate(token, pdfPath, details);
+      expect(uploadRes.status()).toBe(201);
+      const cert = await uploadRes.json();
+
+      // 2. Bolsista tenta alterar o status do próprio certificado (não autorizado)
+      const res = await certificateClient.updateStatus(token, cert.id, 'approved');
+      expect(res.status()).toBe(403);
+
+      // Limpar certificado
+      await certificateClient.deleteCertificate(token, cert.id);
+    });
   });
 
   test.describe('Feedback de Erro e Segurança', () => {

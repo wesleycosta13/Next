@@ -188,4 +188,90 @@ test.describe('API - Avaliações de Tutoria', () => {
     });
   });
 
+  test.describe('Coordenador e Tutor', () => {
+    test('Deve permitir que um Tutor envie avaliação de tutoria com sucesso @smoke', async ({ avaliacaoClient, userClient, cleanupService }) => {
+      // 1. Criar e logar com Tutor
+      const tutorEmail = `tutor_api_eval_${Date.now()}@test.com`;
+      cleanupService.addEmail(tutorEmail);
+      const tutorPayload = buildUserPayload({
+        email: tutorEmail,
+        bolsista: null,
+        tutor: {
+          area: 'Tecnologia',
+          nivel: 'Coordenador',
+          capacidadeMaxima: 5
+        }
+      });
+      const regTutor = await userClient.createUser(tutorPayload);
+      expect(regTutor.ok()).toBeTruthy();
+
+      const loginTutor = await userClient.login({
+        email: tutorEmail,
+        senha: tutorPayload.senha
+      });
+      expect(loginTutor.ok()).toBeTruthy();
+      const loginTutorBody = await loginTutor.json();
+      const tutorToken = loginTutorBody.token;
+
+      // 2. Enviar avaliação como Tutor
+      const payload = {
+        periodoId,
+        tipoAvaliador: 'TUTOR' as const,
+        aspectosPositivos: [],
+        aspectosNegativos: [],
+        sugestoesMelhorias: [],
+        comentarioGeral: 'Avaliação de tutoria enviada pelo tutor.',
+        dificuldadesComunicacao: 'Não',
+        dificuldadesConteudo: 'Não',
+        dificuldadesMetodologicas: 'Não',
+        dificuldadesRecursos: 'Não',
+        outrasDificuldades: '',
+        nivelSatisfacaoGeral: 'SATISFEITO' as const,
+        recomendariaPrograma: true,
+        justificativaRecomendacao: 'Sim.',
+        periodoAvaliado: '01/01/2026',
+      };
+
+      const res = await avaliacaoClient.createAvaliacao(tutorToken, payload);
+      expect(res.status()).toBe(201);
+    });
+
+    test('Deve permitir que um Coordenador liste todas as avaliações do período', async ({ avaliacaoClient, userClient, cleanupService }) => {
+      // 1. Criar e logar com Coordenador
+      const coordEmail = `coord_api_eval_${Date.now()}@test.com`;
+      cleanupService.addEmail(coordEmail);
+      const coordPayload = buildUserPayload({
+        email: coordEmail,
+        bolsista: null,
+        tutor: null,
+        coordenador: {
+          area: 'Tecnologia',
+          nivel: 'Senior'
+        }
+      });
+      const regCoord = await userClient.createUser(coordPayload);
+      expect(regCoord.ok()).toBeTruthy();
+
+      const loginCoord = await userClient.login({
+        email: coordEmail,
+        senha: coordPayload.senha
+      });
+      expect(loginCoord.ok()).toBeTruthy();
+      const loginCoordBody = await loginCoord.json();
+      const coordToken = loginCoordBody.token;
+
+      // 2. Listar todas
+      const res = await avaliacaoClient.listAllAvaliacoes(coordToken);
+      expect(res.status()).toBe(200);
+      const body = await res.json();
+      expect(Array.isArray(body.data)).toBeTruthy();
+    });
+
+    test('Deve negar acesso a listar todas as avaliações para perfis não coordenadores (403 Forbidden)', async ({ avaliacaoClient }) => {
+      // Usar o token do Bolsista configurado no beforeEach
+      const res = await avaliacaoClient.listAllAvaliacoes(token);
+      expect(res.status()).toBe(403);
+    });
+  });
+
 });

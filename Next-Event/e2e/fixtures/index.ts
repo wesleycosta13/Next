@@ -5,6 +5,7 @@ import { DashboardPage } from '../pages/bolsista/DashboardPage';
 import { MeusCertificadosPage } from '../pages/bolsista/MeusCertificadosPage';
 import { AvaliacaoTutoriaPage } from '../pages/bolsista/AvaliacaoTutoriaPage';
 import { TutorPage } from '../pages/tutor/TutorPage';
+import { CoordenadorPage } from '../pages/coordenador/CoordenadorPage';
 import { UserClient } from '../clients/UserClient';
 import { CertificateClient } from '../clients/CertificateClient';
 import { AvaliacaoClient } from '../clients/AvaliacaoClient';
@@ -22,6 +23,7 @@ type MyFixtures = {
   meusCertificadosPage: MeusCertificadosPage;
   avaliacaoTutoriaPage: AvaliacaoTutoriaPage;
   tutorPage: TutorPage;
+  coordenadorPage: CoordenadorPage;
   userClient: UserClient;
   certificateClient: CertificateClient;
   avaliacaoClient: AvaliacaoClient;
@@ -84,6 +86,10 @@ export const test = base.extend<MyFixtures>({
 
   tutorPage: async ({ page }, use) => {
     await use(new TutorPage(page));
+  },
+
+  coordenadorPage: async ({ page }, use) => {
+    await use(new CoordenadorPage(page));
   },
 });
 

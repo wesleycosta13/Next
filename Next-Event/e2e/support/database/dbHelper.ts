@@ -50,8 +50,9 @@ export class DbHelper {
         await pool.query('DELETE FROM "form_acompanhamento" WHERE "tutorId" = $1', [tutorId]);
       }
 
-      // 3. Deletar avaliações de tutoria associadas
+      // 3. Deletar avaliações de tutoria e notificações associadas
       await pool.query('DELETE FROM "avaliacao_tutoria" WHERE "usuarioId" = $1', [userId]);
+      await pool.query('DELETE FROM "notification" WHERE "userId" = $1', [userId]);
 
       // 4. Deletar o próprio usuário (Cascades no bolsista/tutor/coordenador se configurado na FK, mas fazemos explícito por segurança)
       await pool.query('DELETE FROM "usuario" WHERE id = $1', [userId]);
