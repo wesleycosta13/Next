@@ -2,6 +2,7 @@ import { test, expect } from '../../../fixtures/index';
 import { UserFactory } from '../../../support/factories/UserFactory';
 import { buildUserPayload } from '../../../payloads/userPayload';
 
+
 test.describe('UI - Cadastro de Usuário', () => {
 
   test.beforeEach(async ({ registerPage }) => {
@@ -44,6 +45,18 @@ test.describe('UI - Cadastro de Usuário', () => {
       await registerPage.submit();
 
       await registerPage.expectErrorToContainText(/usuário já existe|email já está em uso|matrícula já está cadastrada|cpf já está cadastrado/i);
+    });
+
+    test('Deve exibir erro se as senhas forem diferentes', async ({ registerPage, cleanupService }) => {
+      const payload = UserFactory.generateUser();
+      cleanupService.addEmail(payload.email);
+
+      await registerPage.fillForm(payload, { senha: 'SenhaValida123' });
+      // Sobrescrever apenas o campo confirmarSenha para forçar divergência
+      await registerPage.confirmarSenhaInput.fill('OutraSenha123');
+      await registerPage.submit();
+
+      await registerPage.expectErrorToContainText(/As senhas devem ser iguais!/i);
     });
   });
 

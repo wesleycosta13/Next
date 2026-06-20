@@ -88,4 +88,22 @@ test.describe('UI - Avaliação de Tutoria', () => {
     await expect(page).toHaveURL(/\/avaliacao-tutoria/);
   });
 
+  test('Deve exibir erro de validação nativa ao submeter avaliação sem campos obrigatórios', async ({ loginPage, avaliacaoTutoriaPage, page }) => {
+    // 1. Vincula o tutor ao aluno no banco para o cenário
+    await DbHelper.vinculaTutorBolsista(tutorId, bolsistaUser.email, periodoId);
+
+    // 2. Realizar Login e navegar
+    await loginPage.navigate();
+    await loginPage.login(bolsistaUser.email, bolsistaUser.senha);
+    await expect(page).toHaveURL(/\/bolsista/);
+    await avaliacaoTutoriaPage.navigate();
+
+    // 3. Clicar em enviar sem preencher os campos requeridos
+    await avaliacaoTutoriaPage.enviarBtn.click();
+
+    // 4. Verificar validação HTML5 do select de dificuldades
+    const validationMessage = await avaliacaoTutoriaPage.dificuldadeSelect.evaluate((el: HTMLSelectElement) => el.validationMessage);
+    expect(validationMessage).toMatch(/obrigat|preencha|fill out|select an item/i);
+  });
+
 });
