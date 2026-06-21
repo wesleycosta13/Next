@@ -4,9 +4,15 @@ import { useNavigate } from 'react-router-dom';
 import { useEffect, useState, useRef } from 'react';
 
 import LogoNextCertify from '../img/NextCertify.png';
+
 import useAuthenticatedUser from '../hooks/useAuthenticatedUser';
 import certificateService from '../services/certificateService';
 import predefinicoesService from '../services/predefinicoesService';
+
+import ModalSucesso from '../components/ModalSucesso';
+import AlertBox from '../components/AlertBox';
+import useAlert from '../hooks/useAlert';
+import { formatWorkload } from '../utils/formatter';
 
 function MeusCertificados() {
     const navigate = useNavigate();
@@ -20,8 +26,11 @@ function MeusCertificados() {
     const [showModal, setShowModal] = useState(false);
     const [tempFile, setTempFile] = useState(null);
     const [formData, setFormData] = useState({ titulo: '', startDate: '', endDate: '', horas: '', categoria: '', instituicao: '', descricao: '' });
+    const [showSuccessModal, setShowSuccessModal] = useState(false);
 
     const [resumoHoras, setResumoHoras] = useState({ aprovadas: 0, meta: 100, faltam: 100, progresso: 0 });
+
+    const { show, message, variant, alertKey, handleAlert } = useAlert();
 
     useEffect(() => {
         if (!usuario || !token) return;
@@ -39,7 +48,7 @@ function MeusCertificados() {
 
                 const horasAprovadas = certificadosData.filter(c => c.status === 'approved').reduce((acc, curr) => acc + (Number(curr.workload) || 0), 0);
 
-                let meta = 100; // Valor padrão se não encontrar vínculo
+                let meta = 100;
 
                 try {
                     const vinculos = await predefinicoesService.listVinculos(null, token);
@@ -136,9 +145,9 @@ function MeusCertificados() {
             setCertificados(formatados);
 
             setShowModal(false);
-            alert("Certificado enviado com sucesso!");
+            setShowSuccessModal(true);
         } catch (err) {
-            alert(err.message);
+            handleAlert(err.message);
         }
     };
 
@@ -149,7 +158,7 @@ function MeusCertificados() {
             await certificateService.deleteCertificate(id, token);
             setCertificados(prev => prev.filter(c => c.id !== id));
         } catch (err) {
-            alert("Erro ao excluir certificado.");
+            handleAlert(err.message);
         }
     };
 
@@ -157,7 +166,7 @@ function MeusCertificados() {
         try {
             await certificateService.downloadCertificate(cert.id, token);
         } catch (err) {
-            alert(err.message);
+            handleAlert(err.message);
         }
     };
 
@@ -171,8 +180,12 @@ function MeusCertificados() {
         <div style={{ backgroundColor: '#f8f9fa', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
             <Navbar bg="white" expand="lg" className="shadow-sm py-3">
                 <Container fluid className="px-5">
-                    <Navbar.Brand href="#" className="d-flex align-items-center">
-                        <Image src={LogoNextCertify} alt="Logo NextCertify" height="40" />
+                    <Navbar.Brand onClick={() => navigate("/aluno")} style={{ cursor: 'pointer' }}>
+                        <Image
+                            src={LogoNextCertify}
+                            alt="Logo NextCertify"
+                            height="40"
+                        />
                     </Navbar.Brand>
 
                     <Navbar.Toggle aria-controls="basic-navbar-nav" />
@@ -325,7 +338,13 @@ function MeusCertificados() {
                             <Col md={6}>
                                 <Form.Group className="mb-3">
                                     <Form.Label className="fw-bold small">Carga Horária (horas) (Opcional)</Form.Label>
-                                    <Form.Control type="number" placeholder="Ex: 40" value={formData.horas} onChange={(e) => setFormData({ ...formData, horas: e.target.value })} />
+                                    <Form.Control
+                                        type="text"
+                                        inputMode="numeric"
+                                        placeholder="Ex: 40"
+                                        value={formData.horas}
+                                        onChange={(e) => setFormData({ ...formData, horas: formatWorkload(e.target.value) })}
+                                    />
                                 </Form.Group>
                             </Col>
 
@@ -341,12 +360,29 @@ function MeusCertificados() {
                             <Form.Control as="textarea" rows={2} value={formData.descricao} onChange={(e) => setFormData({ ...formData, descricao: e.target.value })} />
                         </Form.Group>
                     </Form>
+
+                    <AlertBox
+                        show={show}
+                        message={message}
+                        variant={variant}
+                        key={alertKey}
+                    />
                 </Modal.Body>
                 <Modal.Footer className="border-0 px-4 pb-4">
                     <Button variant="light" onClick={() => setShowModal(false)}>Cancelar</Button>
                     <Button variant="primary" onClick={handleConfirmUpload}>Salvar Certificado</Button>
                 </Modal.Footer>
             </Modal>
+
+            <ModalSucesso
+                show={showSuccessModal}
+                onHide={() => setShowSuccessModal(false)}
+                title="Certificado enviado!"
+                message="Seu certificado foi enviado com sucesso e está aguardando validação."
+                buttonText="Ok"
+                buttonVariant="primary"
+                onAction={() => setShowSuccessModal(false)}
+            />
 
             <footer style={{ background: 'linear-gradient(90deg, #005bea 0%, #00c6fb 100%)', padding: '30px 0', textAlign: 'center', color: 'white' }} className="mt-auto">
                 <Container>

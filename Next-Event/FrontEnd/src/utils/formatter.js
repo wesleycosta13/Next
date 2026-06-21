@@ -22,3 +22,13 @@ export function formatAdmisionYear(val) {
 
     return admissionYear;
 }
+
+export function formatWorkload(val) {
+    if (!val) {
+        return '';
+    }
+
+    let workload = val.replace(/\D/g, '').slice(0, 3);
+
+    return workload;
+}

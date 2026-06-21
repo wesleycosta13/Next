@@ -24,6 +24,13 @@ describe('ROTAS DE CERTIFICADOS - INTEGRAÇÃO', () => {
     });
 
     describe('POST /api/certificates/upload', () => {
+        const formatDateToDDMMYYYY = (date: Date) => {
+            const d = String(date.getDate()).padStart(2, '0');
+            const m = String(date.getMonth() + 1).padStart(2, '0');
+            const y = date.getFullYear();
+            return `${d}/${m}/${y}`;
+        };
+
         it('Sucesso: Aluno envia certificado (Upload)', async () => {
             const token = obterToken('scholarship_holder');
 
@@ -34,11 +41,47 @@ describe('ROTAS DE CERTIFICADOS - INTEGRAÇÃO', () => {
                 .field('description', 'Curso intensivo')
                 .field('institution', 'Udemy')
                 .field('workload', 20)
-                .field('startDate', new Date().toISOString())
-                .field('endDate', new Date().toISOString())
+                .field('startDate', formatDateToDDMMYYYY(new Date()))
+                .field('endDate', formatDateToDDMMYYYY(new Date()))
                 .field('category', 'EVENTOS')
             // Aceita 201 Created ou 200 OK
             expect([200, 201, 400]).toContain(response.status);
+        });
+
+        it('Falha: Aluno envia certificado com título inválido (caracteres especiais)', async () => {
+            const token = obterToken('scholarship_holder');
+
+            const response = await request(app)
+                .post(`${ROUTE_BASE}/upload`)
+                .set('Authorization', token)
+                .field('title', 'Curso de NodeJS!')
+                .field('description', 'Curso intensivo')
+                .field('institution', 'Udemy')
+                .field('workload', 20)
+                .field('startDate', '10/06/2026')
+                .field('endDate', '12/06/2026')
+                .field('category', 'EVENTOS');
+
+            expect(response.status).toBe(400);
+            expect(response.body.error).toBe('O título deve conter apenas letras e números.');
+        });
+
+        it('Falha: Aluno envia certificado com data de término menor que de início', async () => {
+            const token = obterToken('scholarship_holder');
+
+            const response = await request(app)
+                .post(`${ROUTE_BASE}/upload`)
+                .set('Authorization', token)
+                .field('title', 'Curso de NodeJS')
+                .field('description', 'Curso intensivo')
+                .field('institution', 'Udemy')
+                .field('workload', 20)
+                .field('startDate', '15/06/2026')
+                .field('endDate', '10/06/2026')
+                .field('category', 'EVENTOS');
+
+            expect(response.status).toBe(400);
+            expect(response.body.error).toBe('A data de início não pode ser maior que a data de término.');
         });
     });
 

@@ -234,7 +234,7 @@ function Predefinicoes() {
         <div style={{ backgroundColor: '#f8f9fa', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
             <Navbar bg="white" expand={false} expanded={expanded} onToggle={setExpanded} className="shadow-sm py-3">
                 <Container fluid className="px-5">
-                    <Navbar.Brand href="#" className="d-flex align-items-center">
+                    <Navbar.Brand onClick={() => navigate("/coordenador")} style={{ cursor: 'pointer' }}>
                         <Image
                             src={LogoNextCertify}
                             alt="Logo NextCertify"

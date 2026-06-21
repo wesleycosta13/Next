@@ -2,15 +2,23 @@ import { CreateUsuarioDTO } from '../dtos/CreateUserDTO';
 
 export class CreateUserValidator {
     static validate(data: CreateUsuarioDTO): string | null {
-        return (
+        const error = (
             this.validarNome(data.nome) ||
             this.validarEmail(data.email) ||
             this.validarCPF(data.cpf) ||
-            this.validarAnoIngresso(data.bolsista?.anoIngresso) ||
-            this.validarCurso(data.bolsista?.curso) ||
-            this.validarSenha(data.senha) ||
-            null
+            this.validarSenha(data.senha)
         );
+
+        if (error) return error;
+
+        if (data.bolsista) {
+            return (
+                this.validarAnoIngresso(data.bolsista.anoIngresso) ||
+                this.validarCurso(data.bolsista.curso)
+            );
+        }
+
+        return null;
     }
 
     static validarNome(nome?: string): string | null {

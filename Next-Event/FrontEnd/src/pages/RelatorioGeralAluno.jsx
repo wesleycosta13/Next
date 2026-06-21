@@ -164,11 +164,17 @@ function RelatorioGeralAluno() {
         <div style={{ backgroundColor: '#f8f9fa', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
             <Navbar bg="white" expand="lg" className="shadow-sm py-3 mb-4">
                 <Container fluid className="px-5">
-                    <Navbar.Brand href="#"><Image src={LogoNextCertify} alt="Logo" height="40" /></Navbar.Brand>
+                    <Navbar.Brand onClick={() => navigate("/coordenador")} style={{ cursor: 'pointer' }}>
+                        <Image
+                            src={LogoNextCertify}
+                            alt="Logo NextCertify"
+                            height="40"
+                        />
+                    </Navbar.Brand>
                     <Navbar.Toggle aria-controls="basic-navbar-nav" />
                     <Navbar.Collapse id="basic-navbar-nav">
                         <Nav className="text-center mx-auto fw-medium">
-                            <Nav.Link onClick={() => navigate(usuario.role === 'coordenador' ? '/coordenador' : '/bolsista')} className="mx-2 text-dark">Home</Nav.Link>
+                            <Nav.Link onClick={() => navigate("/coordenador")} className="mx-2 text-dark">Home</Nav.Link>
                             <Nav.Link onClick={() => navigate('/registro-aluno')} className="mx-2 text-dark">Registro de Alunos</Nav.Link>
                             <Nav.Link onClick={() => navigate('/registro-tutores')} className="mx-2 text-dark">Registro de tutores</Nav.Link>
                             <Nav.Link onClick={() => navigate('/predefinicoes')} className="mx-2 text-dark">Predefinições</Nav.Link>

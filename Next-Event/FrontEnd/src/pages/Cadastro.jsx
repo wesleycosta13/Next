@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { Container, Row, Col, Form, Image, Modal, Button } from "react-bootstrap";
+import { Container, Row, Col, Form, Image } from "react-bootstrap";
 import { Link, useNavigate } from 'react-router-dom';
 
 import InputFlutuante from '../components/InputFlutuante';
 import BotaoPrincipal from '../components/BotaoPrincipal';
+import ModalSucesso from '../components/ModalSucesso';
 
 import ImagemCadastro from '../img/signin.png';
 
@@ -251,17 +252,14 @@ function Cadastro() {
                 </Row>
             </Container>
 
-            <Modal show={showModal} onHide={handleCloseModal}>
-                <Modal.Header closeButton>
-                    <Modal.Title className="text-primary fw-bold">Cadastro realizado!</Modal.Title>
-                </Modal.Header>
-                <Modal.Body className="text-muted">Seu cadastro foi realizado com sucesso. Você já pode fazer o login na plataforma!</Modal.Body>
-                <Modal.Footer>
-                    <Button variant="primary" onClick={() => navigate("/")}>
-                        Ir para o Login
-                    </Button>
-                </Modal.Footer>
-            </Modal>
+            <ModalSucesso
+                show={showModal}
+                onHide={handleCloseModal}
+                title="Cadastro realizado!"
+                message="Seu cadastro foi realizado com sucesso. Você já pode fazer entrar!"
+                buttonText="Ir para o Login"
+                onAction={() => navigate("/")}
+            />
         </div>
     );
 };
