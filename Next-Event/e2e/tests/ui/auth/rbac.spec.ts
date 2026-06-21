@@ -7,7 +7,7 @@ test.describe('UI - Controle de Acesso Baseado em Papel (RBAC)', () => {
   let tutorUser: any;
   let coordinatorUser: any;
 
-  test.beforeAll(async ({ userClient, cleanupService }) => {
+  test.beforeEach(async ({ userClient, cleanupService }) => {
     // 1. Criar Usuário Aluno Comum (student)
     const studentPayload = buildUserPayload({
       bolsista: null,

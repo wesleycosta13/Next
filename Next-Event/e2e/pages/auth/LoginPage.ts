@@ -17,14 +17,19 @@ export class LoginPage {
 
   async navigate() {
     await this.page.goto('/');
+    await expect(this.emailInput).toBeVisible({ timeout: 15000 });
   }
 
-  async login(email: string, senha: string) {
+  async login(email: string, senha: string, expectSuccess = true) {
+    await this.emailInput.waitFor({ state: 'visible', timeout: 10000 });
     await this.emailInput.fill(email);
     await this.senhaInput.fill(senha);
+    await this.loginButton.waitFor({ state: 'visible', timeout: 10000 });
     await this.loginButton.click();
-    // Esperar a redireção após login bem-sucedido
-    await this.page.waitForURL(/\/(home|coordenador|bolsista|tutor|)\/?$/, { timeout: 15000 });
+    if (expectSuccess) {
+      // Esperar a redireção após login bem-sucedido
+      await this.page.waitForURL(/\/(aluno|coordenador|bolsista|home-tutor)\/?$/, { timeout: 15000 });
+    }
   }
 
   /**

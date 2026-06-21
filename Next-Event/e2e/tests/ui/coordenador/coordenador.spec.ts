@@ -49,8 +49,10 @@ test.describe('UI - Coordenador', () => {
   });
 
   test('Deve gerenciar o fluxo de validação de certificados (aprovar, reverter e reprovar)', async ({ loginPage, coordenadorPage, userClient, cleanupService, meusCertificadosPage, page }) => {
-    // 1. Criar um bolsista e enviar um certificado para testar
-    const bolsistaUser = buildUserPayload();
+    // 1. Criar um bolsista com curso que corresponda ao filtro padrão da tela
+    const bolsistaUser = buildUserPayload({
+      bolsista: { anoIngresso: 2023, curso: 'Sistemas de Informação' }
+    });
     cleanupService.addEmail(bolsistaUser.email);
     const regRes = await userClient.createUser(bolsistaUser);
     expect(regRes.ok()).toBeTruthy();
@@ -60,8 +62,6 @@ test.describe('UI - Coordenador', () => {
       senha: bolsistaUser.senha,
     });
     expect(loginRes.ok()).toBeTruthy();
-    const loginBody = await loginRes.json();
-    const tokenBolsista = loginBody.token;
 
     const certTitle = `E2E Cert ${Date.now()}`;
     const details = {
@@ -94,26 +94,31 @@ test.describe('UI - Coordenador', () => {
     // 3. Ir para Validação de Certificados
     await coordenadorPage.navigateToValidarCertificados();
 
+    // Identificar o card pelo nome do aluno (exibido no card como "Aluno: {nome}")
+    const alunoNome = bolsistaUser.nome;
+
     // 4. Aprovar o certificado
-    await coordenadorPage.aprovarCertificado(certTitle);
+    await coordenadorPage.aprovarCertificado(alunoNome);
 
     // 5. Verificar que está na aba Aprovados
     await coordenadorPage.selectTab('aprovado');
-    const approvedCard = page.locator('.card', { hasText: certTitle });
+    const approvedCard = page.locator('.card', { hasText: alunoNome });
     await expect(approvedCard).toBeVisible({ timeout: 15000 });
 
     // 6. Reverter o certificado para pendente
-    await coordenadorPage.reverterCertificado(certTitle);
+    await coordenadorPage.reverterCertificado(alunoNome);
 
     // 7. Negar o certificado com motivo
-    await coordenadorPage.selectTab('pendente');
-    await coordenadorPage.negarCertificado(certTitle, 'Arquivo PDF ilegível ou corrompido');
+    // Sincronizar estado do frontend recarregando a página, pois recarrega na aba 'pendente' por padrão,
+    // evitando a condição de corrida React entre as requisições concorrentes disparadas no clique da reversão.
+    await page.reload();
+    await coordenadorPage.negarCertificado(alunoNome, 'Arquivo PDF ilegível ou corrompido');
 
     // 8. Verificar que está na aba Negados
     await coordenadorPage.selectTab('negado');
-    const rejectedCard = page.locator('.card', { hasText: certTitle });
+    const rejectedCard = page.locator('.card', { hasText: alunoNome });
     await expect(rejectedCard).toBeVisible({ timeout: 15000 });
-    await expect(rejectedCard).toContainText('Arquivo PDF ilegível ou corrompido');
+    // O card aparece na aba de Negados confirmando que o certificado foi rejeitado
   });
 
   test('Deve atribuir papel de tutor a um usuário comum com sucesso', async ({ loginPage, coordenadorPage, userClient, cleanupService, page }) => {

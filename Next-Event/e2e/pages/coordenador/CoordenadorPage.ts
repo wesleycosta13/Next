@@ -90,10 +90,12 @@ export class CoordenadorPage {
     } else if (tab === 'negado') {
       await this.negadosTab.click();
     }
+    // Aguardar o spinner de carregamento sumir (dados carregados da API)
+    await this.page.locator('.spinner-border').waitFor({ state: 'hidden', timeout: 10000 }).catch(() => {});
   }
 
-  async aprovarCertificado(title: string) {
-    const card = this.certCards.filter({ hasText: title });
+  async aprovarCertificado(studentName: string) {
+    const card = this.certCards.filter({ hasText: studentName });
     await expect(card).toBeVisible({ timeout: 15000 });
     
     // Escutando alerta de aprovação
@@ -105,8 +107,8 @@ export class CoordenadorPage {
     await card.getByRole('button', { name: /aprovar/i }).click();
   }
 
-  async negarCertificado(title: string, motivo: string) {
-    const card = this.certCards.filter({ hasText: title });
+  async negarCertificado(studentName: string, motivo: string) {
+    const card = this.certCards.filter({ hasText: studentName });
     await expect(card).toBeVisible({ timeout: 15000 });
     await card.getByRole('button', { name: /negar/i }).click();
 
@@ -120,11 +122,14 @@ export class CoordenadorPage {
     });
 
     await this.confirmarReprovacaoBtn.click();
+    // Aguardar o modal fechar completamente antes de prosseguir
+    await this.page.locator('.modal.show').waitFor({ state: 'hidden', timeout: 10000 }).catch(() => {});
+    await this.page.waitForTimeout(500);
   }
 
-  async reverterCertificado(title: string) {
-    const card = this.certCards.filter({ hasText: title });
-    await expect(card).toBeVisible({ timeout: 15000 });
+  async reverterCertificado(studentName: string) {
+    const approvedCard = this.page.locator('.card.border-success', { hasText: studentName });
+    await expect(approvedCard).toBeVisible({ timeout: 15000 });
     
     // Escutando alerta de reversão
     this.page.once('dialog', async dialog => {
@@ -132,7 +137,9 @@ export class CoordenadorPage {
       await dialog.accept();
     });
 
-    await card.getByRole('button', { name: /reverter para pendente/i }).click();
+    await approvedCard.getByRole('button', { name: /reverter para pendente/i }).click();
+    // Aguardar o card sumir da aba atual (indica que o servidor processou a reversão)
+    await expect(approvedCard).not.toBeVisible({ timeout: 10000 });
   }
 
   async atribuirPapel(email: string, papel: 'tutor' | 'bolsista' | 'coordenador') {

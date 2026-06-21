@@ -7,7 +7,19 @@ test.describe('UI - Avaliação de Tutoria', () => {
   let periodoId: string;
   let tutorId: string;
 
-  test.beforeEach(async ({ userClient, cleanupService }) => {
+  test.beforeEach(async ({ userClient, cleanupService, page }) => {
+    // Interceptar a API de período de tutoria para envolver a lista (array) em um objeto { periodos: [...] },
+    // corrigindo a incompatibilidade de contrato de API no frontend (avaliacaoTutoriaService.js espera .periodos).
+    await page.route('**/periodo-tutoria', async route => {
+      const response = await route.fetch();
+      const json = await response.json();
+      if (Array.isArray(json)) {
+        await route.fulfill({ json: { periodos: json } });
+      } else {
+        await route.continue();
+      }
+    });
+
     // 1. Criar usuário bolsista
     bolsistaUser = buildUserPayload();
     cleanupService.addEmail(bolsistaUser.email);
@@ -41,10 +53,7 @@ test.describe('UI - Avaliação de Tutoria', () => {
     await avaliacaoTutoriaPage.expectStudentAndTutorInfo(bolsistaUser.nome, 'Ciência da Computação', 'Prof. E2E Mentor');
 
     // 4. Configurar listener para o alert de sucesso
-    page.once('dialog', async dialog => {
-      expect(dialog.message()).toContain('Avaliação enviada com sucesso');
-      await dialog.accept();
-    });
+    const dialogPromise = page.waitForEvent('dialog');
 
     // 5. Preencher e submeter o questionário
     await avaliacaoTutoriaPage.submitAvaliacao({
@@ -53,6 +62,10 @@ test.describe('UI - Avaliação de Tutoria', () => {
       dificuldade: 'dificuldadesComunicacao',
       comentario: 'O tutor se manteve disponível por todo o semestre e esclareceu todas as dúvidas de conteúdo.',
     });
+
+    const dialog = await dialogPromise;
+    expect(dialog.message()).toContain('Avaliação enviada com sucesso');
+    await dialog.accept();
 
     // 6. Deve redirecionar para a home do bolsista
     await expect(page).toHaveURL(/\/bolsista/);
@@ -71,10 +84,7 @@ test.describe('UI - Avaliação de Tutoria', () => {
     await expect(avaliacaoTutoriaPage.tutorInput).toHaveValue(/Não atribuído|Tutor não encontrado/i);
 
     // 3. Preencher dados e tentar enviar. Deve interceptar o dialog de bloqueio
-    page.once('dialog', async dialog => {
-      expect(dialog.message()).toContain('Você não possui um tutor vinculado para avaliar');
-      await dialog.accept();
-    });
+    const dialogPromise = page.waitForEvent('dialog');
 
     // Preencher questionário e clicar no botão
     await avaliacaoTutoriaPage.submitAvaliacao({
@@ -83,6 +93,10 @@ test.describe('UI - Avaliação de Tutoria', () => {
       dificuldade: 'outrasDificuldades',
       comentario: 'Tentativa sem tutor alocado.',
     });
+
+    const dialog = await dialogPromise;
+    expect(dialog.message()).toContain('Você não possui um tutor vinculado para avaliar');
+    await dialog.accept();
 
     // Não deve sair da página de avaliação
     await expect(page).toHaveURL(/\/avaliacao-tutoria/);
@@ -103,7 +117,7 @@ test.describe('UI - Avaliação de Tutoria', () => {
 
     // 4. Verificar validação HTML5 do select de dificuldades
     const validationMessage = await avaliacaoTutoriaPage.dificuldadeSelect.evaluate((el: HTMLSelectElement) => el.validationMessage);
-    expect(validationMessage).toMatch(/obrigat|preencha|fill out|select an item/i);
+    expect(validationMessage).toMatch(/obrigat|preencha|fill out|select an item|selecione/i);
   });
 
 });

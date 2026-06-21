@@ -40,7 +40,7 @@ test.describe('UI - Login de Usuário', () => {
 
   test.describe('Feedback de Erro', () => {
     test('Deve exibir mensagem de erro ao falhar na autenticação', async ({ loginPage }) => {
-      await loginPage.login('invalido@test.com', 'senha123');
+      await loginPage.login('invalido@test.com', 'senha123', false);
       await loginPage.expectErrorMessage(/incorret/i);
     });
   });
