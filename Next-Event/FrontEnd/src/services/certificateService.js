@@ -19,7 +19,6 @@ const certificateService = {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${token}`
-                // Note: Content-Type is set automatically for FormData
             },
             body: formData
         });

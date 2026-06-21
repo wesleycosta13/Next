@@ -171,7 +171,7 @@ function AvaliacaoTutoria() {
 
             <Navbar bg="white" expand="lg" className="shadow-sm py-3">
                 <Container fluid className="px-5">
-                    <Navbar.Brand href="#" className="d-flex align-items-center">
+                     <Navbar.Brand onClick={() => navigate("/aluno")} style={{ cursor: 'pointer' }}>
                         <Image
                             src={LogoNextCertify}
                             alt="Logo NextCertify"
@@ -180,7 +180,7 @@ function AvaliacaoTutoria() {
                     </Navbar.Brand>
                     <Navbar.Collapse>
                         <Nav className="text-center mx-auto fw-medium">
-                            <Nav.Link onClick={() => navigate('/bolsista')} className="mx-2 text-dark">Home</Nav.Link>
+                            <Nav.Link onClick={() => navigate('/aluno')} className="mx-2 text-dark">Home</Nav.Link>
                             <Nav.Link onClick={() => navigate('/meus-certificados')} className="mx-2 text-dark">Certificados</Nav.Link>
                             <Nav.Link className="mx-2 text-dark fw-bold">Avaliação Tutoria</Nav.Link>
                         </Nav>
@@ -261,9 +261,9 @@ function AvaliacaoTutoria() {
                             <Col md={6} className="mb-4">
                                 <div className="d-flex justify-content-between">
                                     <Form.Label className="text-primary fw-bold">Sua satisfação geral</Form.Label>
-                                    <span className="badge bg-primary">{formData.nivelSatisfacaoGeral}%</span>
+                                    <span className="badge bg-primary d-flex align-items-center">{formData.nivelSatisfacaoGeral}%</span>
                                 </div>
-                                <Form.Range id="nivelSatisfacaoGeral" value={formData.nivelSatisfacaoGeral} onChange={handleChange} style={getBackgroundStyle(formData.nivelSatisfacaoGeral)} />
+                                <Form.Range id="nivelSatisfacaoGeral" value={formData.nivelSatisfacaoGeral} onChange={handleChange} />
                             </Col>
 
                             <Col md={6}>
