@@ -71,36 +71,45 @@ test.describe('UI - Avaliação de Tutoria', () => {
     await expect(page).toHaveURL(/\/bolsista/);
   });
 
-  test('Deve bloquear submissão se não possuir tutor vinculado', async ({ loginPage, avaliacaoTutoriaPage, page }) => {
-    // NOTA: NÃO fazemos o vínculo de tutor para este teste!
+test('Deve bloquear submissão se não possuir tutor vinculado', async ({ loginPage, avaliacaoTutoriaPage, page }) => {
+  // NOTA: NÃO fazemos o vínculo de tutor para este teste!
 
-    // 1. Realizar Login e navegar
-    await loginPage.navigate();
-    await loginPage.login(bolsistaUser.email, bolsistaUser.senha);
-    await expect(page).toHaveURL(/\/bolsista/);
-    await avaliacaoTutoriaPage.navigate();
+  // 1. Realizar Login e navegar
+  await loginPage.navigate();
+  await loginPage.login(bolsistaUser.email, bolsistaUser.senha);
+  await expect(page).toHaveURL(/\/bolsista/);
+  await avaliacaoTutoriaPage.navigate();
 
-    // 2. Validar que Tutor Vinculado exibe "Não atribuído" ou "Tutor não encontrado"
-    await expect(avaliacaoTutoriaPage.tutorInput).toHaveValue(/Não atribuído|Tutor não encontrado/i);
+  // 2. Validar que Tutor Vinculado exibe "Não atribuído" ou "Tutor não encontrado"
+  await expect(avaliacaoTutoriaPage.tutorInput).toHaveValue(/Não atribuído|Tutor não encontrado/i);
 
-    // 3. Preencher dados e tentar enviar. Deve interceptar o dialog de bloqueio
-    const dialogPromise = page.waitForEvent('dialog');
+  // 3. Preencher dados e tentar enviar. Deve interceptar o dialog de bloqueio.
+  let dialogFired = false;
+  let dialogMessage = '';
 
-    // Preencher questionário e clicar no botão
-    await avaliacaoTutoriaPage.submitAvaliacao({
-      satisfacaoPercent: 50,
-      recomendaria: false,
-      dificuldade: 'outrasDificuldades',
-      comentario: 'Tentativa sem tutor alocado.',
-    });
-
-    const dialog = await dialogPromise;
-    expect(dialog.message()).toContain('Você não possui um tutor vinculado para avaliar');
+  page.once('dialog', async dialog => {
+    dialogFired = true;
+    dialogMessage = dialog.message();
     await dialog.accept();
-
-    // Não deve sair da página de avaliação
-    await expect(page).toHaveURL(/\/avaliacao-tutoria/);
   });
+
+  // Preencher questionário e clicar no botão
+  await avaliacaoTutoriaPage.submitAvaliacao({
+    satisfacaoPercent: 50,
+    recomendaria: false,
+    dificuldade: 'outrasDificuldades',
+    comentario: 'Tentativa sem tutor alocado.',
+  });
+
+  // 4. Garantir que o dialog de fato disparou e validar a mensagem
+  // (sem essa flag, um handler que nunca dispara faria o teste passar
+  // "de mentirinha" sem validar nada)
+  expect(dialogFired).toBeTruthy();
+  expect(dialogMessage).toContain('Você não possui um tutor vinculado para avaliar');
+
+  // 5. Não deve sair da página de avaliação
+  await expect(page).toHaveURL(/\/avaliacao-tutoria/);
+});
 
   test('Deve exibir erro de validação nativa ao submeter avaliação sem campos obrigatórios', async ({ loginPage, avaliacaoTutoriaPage, page }) => {
     // 1. Vincula o tutor ao aluno no banco para o cenário
