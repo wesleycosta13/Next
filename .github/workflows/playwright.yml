@@ -62,12 +62,15 @@ jobs:
         echo "Aguardando Postgres na porta 5433..."
         npx -y wait-on tcp:localhost:5433 --timeout 120000
 
-        echo "--- Status dos containers após DB subir ---"
-        docker ps
-        docker compose logs backend --tail=30
+        echo "--- Logs iniciais do backend (migrações Prisma) ---"
+        sleep 10
+        docker compose logs backend --tail=50
 
-        echo "Aguardando Backend na porta 3000..."
-        npx -y wait-on http://localhost:3000 --timeout 120000
+        echo "Aguardando Backend na porta 3000 (pode levar até 5 min por causa das migrations)..."
+        npx -y wait-on http://localhost:3000 --timeout 300000
+
+        echo "--- Logs do backend após subir ---"
+        docker compose logs backend --tail=20
 
         echo "Aguardando Frontend na porta 4000..."
         npx -y wait-on http://localhost:4000 --timeout 120000

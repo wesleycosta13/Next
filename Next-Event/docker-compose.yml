@@ -33,12 +33,6 @@ services:
       db:
         condition: service_healthy
     command: sh -c "npx prisma migrate deploy && npm start"
-    healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:3000 || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-      start_period: 30s
 
   # Serviço do Front-end 
   frontend:
@@ -49,8 +43,7 @@ services:
     ports:
       - "4000:80"
     depends_on:
-      backend:
-        condition: service_healthy
+      - backend
 
 volumes:
   next-event_postgres-data:
