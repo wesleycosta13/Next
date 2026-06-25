@@ -43,10 +43,30 @@ jobs:
       working-directory: ./Next-Event/e2e
       run: npx playwright install --with-deps
 
-    - name: ⏳ Aguardar aplicação subir
+    # NOVO: cria o .env dentro de e2e/, que antes não existia em CI.
+    # IMPORTANTE: confirme no seu docker-compose.yml a porta real exposta
+    # do serviço postgres no host. Estou assumindo 5433 com base no seu
+    # .env local — ajuste se o compose mapear diferente (ex: "5433:5432").
+    - name: 📄 Configurar Variáveis de Ambiente (E2E)
       working-directory: ./Next-Event/e2e
       run: |
-        echo "Aguardando serviços iniciarem na porta 4000..."
+        cat <<EOF > .env
+        DATABASE_URL=postgresql://postgres:1305@localhost:5433/nextevent_db?schema=public
+        API_URL=http://localhost:3000
+        BASE_URL=${{ github.event.inputs.base_url || 'http://localhost:4000' }}
+        EOF
+
+    # ALTERADO: agora espera Postgres, backend e frontend, não só o frontend.
+    # O dbHelper conecta direto no Postgres, então só esperar a porta 4000
+    # subir não garante que o banco já aceita conexões.
+    - name: ⏳ Aguardar aplicação subir (DB + Backend + Frontend)
+      working-directory: ./Next-Event/e2e
+      run: |
+        echo "Aguardando Postgres na porta 5433..."
+        npx -y wait-on tcp:localhost:5433 --timeout 120000
+        echo "Aguardando Backend na porta 3000..."
+        npx -y wait-on http://localhost:3000 --timeout 120000
+        echo "Aguardando Frontend na porta 4000..."
         npx -y wait-on http://localhost:4000 --timeout 120000
 
     - name: 🚀 Rodar testes Playwright
@@ -54,6 +74,8 @@ jobs:
       run: npx playwright test
       env:
         BASE_URL: ${{ github.event.inputs.base_url || 'http://localhost:4000' }}
+        DATABASE_URL: postgresql://postgres:1305@localhost:5433/nextevent_db?schema=public
+        API_URL: http://localhost:3000
 
     - name: 📋 Logs do Docker Compose (Em caso de falha)
       if: failure()
