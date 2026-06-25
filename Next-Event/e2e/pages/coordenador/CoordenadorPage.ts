@@ -112,8 +112,13 @@ export class CoordenadorPage {
     await expect(card).toBeVisible({ timeout: 15000 });
     await card.getByRole('button', { name: /negar/i }).click();
 
-    await expect(this.modalTitle).toBeVisible();
+    // Aguardar o modal estar completamente visível e interativo
+    await expect(this.modalTitle).toBeVisible({ timeout: 10000 });
+    await this.motivoInput.waitFor({ state: 'visible', timeout: 10000 });
     await this.motivoInput.fill(motivo);
+
+    // Aguardar o botão estar visível e habilitado antes de clicar
+    await this.confirmarReprovacaoBtn.waitFor({ state: 'visible', timeout: 10000 });
 
     // Escutando alerta de rejeição
     this.page.once('dialog', async dialog => {

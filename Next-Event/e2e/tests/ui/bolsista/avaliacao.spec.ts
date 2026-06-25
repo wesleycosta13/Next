@@ -52,8 +52,17 @@ test.describe('UI - Avaliação de Tutoria', () => {
     // 3. Validar se dados iniciais vieram preenchidos e corretos
     await avaliacaoTutoriaPage.expectStudentAndTutorInfo(bolsistaUser.nome, 'Ciência da Computação', 'Prof. E2E Mentor');
 
-    // 4. Configurar listener para o alert de sucesso
-    const dialogPromise = page.waitForEvent('dialog');
+    // 4. Configurar listener para o alert de sucesso antes de submeter
+    // Usamos page.once + Promise para garantir que o accept() ocorra dentro
+    // do handler, antes que o redirect feche o contexto da página.
+    let dialogMessage = '';
+    const dialogHandled = new Promise<void>(resolve => {
+      page.once('dialog', async dialog => {
+        dialogMessage = dialog.message();
+        await dialog.accept();
+        resolve();
+      });
+    });
 
     // 5. Preencher e submeter o questionário
     await avaliacaoTutoriaPage.submitAvaliacao({
@@ -63,9 +72,8 @@ test.describe('UI - Avaliação de Tutoria', () => {
       comentario: 'O tutor se manteve disponível por todo o semestre e esclareceu todas as dúvidas de conteúdo.',
     });
 
-    const dialog = await dialogPromise;
-    expect(dialog.message()).toContain('Avaliação enviada com sucesso');
-    await dialog.accept();
+    await dialogHandled;
+    expect(dialogMessage).toContain('Avaliação enviada com sucesso');
 
     // 6. Deve redirecionar para a home do bolsista
     await expect(page).toHaveURL(/\/bolsista/);
