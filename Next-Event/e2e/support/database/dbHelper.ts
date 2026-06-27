@@ -109,17 +109,27 @@ export class DbHelper {
     let tutorId = tutorRes.rows[0]?.id;
 
     if (!tutorId) {
+      // ON CONFLICT DO NOTHING previne duplicate key quando múltiplos browsers tentam criar o mesmo tutor em paralelo
       const insertTutor = await pool.query(
         `INSERT INTO "tutor" (id, "usuarioId", "capacidadeMaxima") 
          VALUES (gen_random_uuid(), $1, 5) 
+         ON CONFLICT ("usuarioId") DO NOTHING
          RETURNING id`,
         [userId]
       );
-      if (!insertTutor.rows[0]?.id) {
-        throw new Error(`[DbHelper] Falha ao inserir perfil de tutor para usuário: ${userId}`);
+
+      if (insertTutor.rows[0]?.id) {
+        tutorId = insertTutor.rows[0].id;
+        console.log(`[Database] Tutor criado e associado: ${email}`);
+      } else {
+        // Conflito ocorreu (outro worker criou antes) — busca o registro existente
+        const existingTutor = await pool.query('SELECT id FROM "tutor" WHERE "usuarioId" = $1', [userId]);
+        tutorId = existingTutor.rows[0]?.id;
+        if (!tutorId) {
+          throw new Error(`[DbHelper] Falha ao obter id do tutor existente para usuário: ${userId}`);
+        }
+        console.log(`[Database] Tutor já existente recuperado para reutilização: ${email}`);
       }
-      tutorId = insertTutor.rows[0].id;
-      console.log(`[Database] Tutor criado e associado: ${email}`);
     }
 
     return tutorId;
