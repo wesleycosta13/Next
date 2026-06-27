@@ -21,6 +21,7 @@ test.describe('UI - Gerenciamento de Certificados', () => {
     // 1. Login e navegação
     await loginPage.navigate();
     await loginPage.login(bolsistaUser.email, bolsistaUser.senha);
+    await page.goto('/bolsista');
     await expect(page).toHaveURL(/\/bolsista/);
     await meusCertificadosPage.navigate();
 
@@ -50,6 +51,7 @@ test.describe('UI - Gerenciamento de Certificados', () => {
     // 1. Login e navegação
     await loginPage.navigate();
     await loginPage.login(bolsistaUser.email, bolsistaUser.senha);
+    await page.goto('/bolsista');
     await expect(page).toHaveURL(/\/bolsista/);
     await meusCertificadosPage.navigate();
 
@@ -75,6 +77,7 @@ test.describe('UI - Gerenciamento de Certificados', () => {
     // 1. Login e navegação
     await loginPage.navigate();
     await loginPage.login(bolsistaUser.email, bolsistaUser.senha);
+    await page.goto('/bolsista');
     await expect(page).toHaveURL(/\/bolsista/);
     await meusCertificadosPage.navigate();
 

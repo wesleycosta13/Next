@@ -36,7 +36,7 @@ function Login() {
 
     const navigateRole = (role) => {
         const roleRoutes = {
-            scholarship_holder: "/bolsista",
+            scholarship_holder: "/aluno",
             tutor: "/home-tutor",
             coordinator: "/coordenador",
         };

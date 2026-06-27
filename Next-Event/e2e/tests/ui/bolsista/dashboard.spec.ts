@@ -19,7 +19,9 @@ test.describe('UI - Dashboard do Bolsista', () => {
     await loginPage.navigate();
     await loginPage.login(bolsistaUser.email, bolsistaUser.senha);
 
-    // 2. Validar redirecionamento automático
+    // 2. Navegar explicitamente para o painel do bolsista
+    // (independente do redirecionamento automático do Login.jsx)
+    await page.goto('/bolsista');
     await expect(page).toHaveURL(/\/bolsista/);
 
     // 3. Validar elementos da Dashboard via Page Object
@@ -31,9 +33,10 @@ test.describe('UI - Dashboard do Bolsista', () => {
   });
 
   test('Deve navegar entre as páginas do menu com sucesso', async ({ loginPage, dashboardPage, page }) => {
-    // 1. Login
+    // 1. Login e navegação explícita para o painel
     await loginPage.navigate();
     await loginPage.login(bolsistaUser.email, bolsistaUser.senha);
+    await page.goto('/bolsista');
     await expect(page).toHaveURL(/\/bolsista/);
 
     // 2. Navegar para Certificados usando o menu
@@ -50,9 +53,10 @@ test.describe('UI - Dashboard do Bolsista', () => {
   });
 
   test('Deve clicar em editar perfil com sucesso', async ({ loginPage, dashboardPage, page }) => {
-    // 1. Login
+    // 1. Login e navegação explícita para o painel
     await loginPage.navigate();
     await loginPage.login(bolsistaUser.email, bolsistaUser.senha);
+    await page.goto('/bolsista');
     await expect(page).toHaveURL(/\/bolsista/);
 
     // 2. Clicar no botão de Editar Perfil

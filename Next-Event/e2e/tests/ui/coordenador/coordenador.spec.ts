@@ -77,6 +77,7 @@ test.describe('UI - Coordenador', () => {
     // Fazer upload do certificado pelo bolsista
     await loginPage.navigate();
     await loginPage.login(bolsistaUser.email, bolsistaUser.senha);
+    await page.goto('/bolsista');
     await meusCertificadosPage.navigate();
     await meusCertificadosPage.uploadCertificate(pdfPath, details);
            

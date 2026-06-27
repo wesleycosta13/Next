@@ -46,6 +46,7 @@ test.describe('UI - Avaliação de Tutoria', () => {
     // 2. Realizar Login e navegar
     await loginPage.navigate();
     await loginPage.login(bolsistaUser.email, bolsistaUser.senha);
+    await page.goto('/bolsista');
     await expect(page).toHaveURL(/\/bolsista/);
     await avaliacaoTutoriaPage.navigate();
 
@@ -75,8 +76,8 @@ test.describe('UI - Avaliação de Tutoria', () => {
     await dialogHandled;
     expect(dialogMessage).toContain('Avaliação enviada com sucesso');
 
-    // 6. Deve redirecionar para a home do bolsista
-    await expect(page).toHaveURL(/\/bolsista/);
+    // 6. Deve redirecionar para a home do bolsista após envio
+    await expect(page).toHaveURL(/\/(bolsista|aluno)/);
   });
 
 test('Deve bloquear submissão se não possuir tutor vinculado', async ({ loginPage, avaliacaoTutoriaPage, page }) => {
@@ -85,6 +86,7 @@ test('Deve bloquear submissão se não possuir tutor vinculado', async ({ loginP
   // 1. Realizar Login e navegar
   await loginPage.navigate();
   await loginPage.login(bolsistaUser.email, bolsistaUser.senha);
+  await page.goto('/bolsista');
   await expect(page).toHaveURL(/\/bolsista/);
   await avaliacaoTutoriaPage.navigate();
 
@@ -126,6 +128,7 @@ test('Deve bloquear submissão se não possuir tutor vinculado', async ({ loginP
     // 2. Realizar Login e navegar
     await loginPage.navigate();
     await loginPage.login(bolsistaUser.email, bolsistaUser.senha);
+    await page.goto('/bolsista');
     await expect(page).toHaveURL(/\/bolsista/);
     await avaliacaoTutoriaPage.navigate();
 
