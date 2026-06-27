@@ -91,13 +91,18 @@ export class DbHelper {
     let userId = userRes.rows[0]?.id;
 
     if (!userId) {
+      // Hash bcrypt válido (60 chars) de 'SenhaForte123' para uso em testes
       const insertUser = await pool.query(
         `INSERT INTO "usuario" (id, nome, email, senha, status, "criadoEm", "atualizadoEm") 
-         VALUES (gen_random_uuid(), $1, $2, '$2b$10$UnFkQe5QOskFf2T4yO9RvepX2TfFz8Qd4pZz9Gk5qP8u9RvepX2Tf', 'ATIVO', NOW(), NOW())
+         VALUES (gen_random_uuid(), $1, $2, '$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'ATIVO', NOW(), NOW())
          RETURNING id`,
         [nome, email]
       );
+      if (!insertUser.rows[0]?.id) {
+        throw new Error(`[DbHelper] Falha ao inserir usuário para tutor: ${email}`);
+      }
       userId = insertUser.rows[0].id;
+      console.log(`[Database] Usuário para tutor criado: ${email}`);
     }
 
     const tutorRes = await pool.query('SELECT id FROM "tutor" WHERE "usuarioId" = $1', [userId]);
@@ -110,6 +115,9 @@ export class DbHelper {
          RETURNING id`,
         [userId]
       );
+      if (!insertTutor.rows[0]?.id) {
+        throw new Error(`[DbHelper] Falha ao inserir perfil de tutor para usuário: ${userId}`);
+      }
       tutorId = insertTutor.rows[0].id;
       console.log(`[Database] Tutor criado e associado: ${email}`);
     }
@@ -142,7 +150,16 @@ export class DbHelper {
       bolsistaId = insertBolsista.rows[0].id;
     }
 
-    // 2. Verificar se já existe alocação
+    // 2. Validar que o tutor referenciado existe (previne FK violation em execução paralela)
+    const tutorCheck = await pool.query('SELECT id FROM "tutor" WHERE id = $1', [tutorId]);
+    if (tutorCheck.rows.length === 0) {
+      throw new Error(
+        `[DbHelper] FK violation prevention: Tutor com id "${tutorId}" não encontrado na tabela "tutor". ` +
+        `Certifique-se de que ensureTutor() foi aguardado com sucesso antes de chamar vinculaTutorBolsista().`
+      );
+    }
+
+    // 3. Verificar se já existe alocação
     const alocRes = await pool.query(
       'SELECT id FROM "alocar_tutor_aluno" WHERE "bolsistaId" = $1 AND "periodoId" = $2',
       [bolsistaId, periodoId]

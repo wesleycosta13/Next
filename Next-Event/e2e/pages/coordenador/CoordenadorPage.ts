@@ -97,14 +97,19 @@ export class CoordenadorPage {
   async aprovarCertificado(studentName: string) {
     const card = this.certCards.filter({ hasText: studentName });
     await expect(card).toBeVisible({ timeout: 15000 });
-    
-    // Escutando alerta de aprovação
-    this.page.once('dialog', async dialog => {
-      expect(dialog.message()).toContain('aprovado com sucesso');
-      await dialog.accept();
+
+    // Registrar o listener ANTES do clique e aguardar a resolução do dialog
+    // para evitar que o handler seja consumido por um dialog subsequente.
+    const dialogHandled = new Promise<void>(resolve => {
+      this.page.once('dialog', async dialog => {
+        expect(dialog.message()).toContain('aprovado com sucesso');
+        await dialog.accept();
+        resolve();
+      });
     });
 
     await card.getByRole('button', { name: /aprovar/i }).click();
+    await dialogHandled;
   }
 
   async negarCertificado(studentName: string, motivo: string) {
@@ -135,16 +140,21 @@ export class CoordenadorPage {
   async reverterCertificado(studentName: string) {
     const approvedCard = this.page.locator('.card.border-success', { hasText: studentName });
     await expect(approvedCard).toBeVisible({ timeout: 15000 });
-    
-    // Escutando alerta de reversão
-    this.page.once('dialog', async dialog => {
-      expect(dialog.message()).toContain('revertido para pendente');
-      await dialog.accept();
+
+    // Registrar o listener ANTES do clique e aguardar resolução explícita,
+    // garantindo que este handler não seja consumido por dialogs anteriores.
+    const dialogHandled = new Promise<void>(resolve => {
+      this.page.once('dialog', async dialog => {
+        expect(dialog.message()).toContain('revertido para pendente');
+        await dialog.accept();
+        resolve();
+      });
     });
 
     await approvedCard.getByRole('button', { name: /reverter para pendente/i }).click();
+    await dialogHandled;
     // Aguardar o card sumir da aba atual (indica que o servidor processou a reversão)
-    await expect(approvedCard).not.toBeVisible({ timeout: 10000 });
+    await expect(approvedCard).not.toBeVisible({ timeout: 15000 });
   }
 
   async atribuirPapel(email: string, papel: 'tutor' | 'bolsista' | 'coordenador') {

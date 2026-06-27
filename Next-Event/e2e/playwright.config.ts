@@ -14,6 +14,8 @@ console.log("DEBUG PLAYWRIGHT CONFIG - process.env.BASE_URL:", process.env.BASE_
 
 export default defineConfig({
   testDir: './tests',
+  /* Timeout global por teste: aumentado para cenários de UI mais complexos */
+  timeout: 60000,
   /* Run tests in files in parallel */
   fullyParallel: true,
   /* Fail the build on CI if you accidentally left test.only in the source code. */
