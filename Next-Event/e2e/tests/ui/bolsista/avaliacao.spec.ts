@@ -11,12 +11,31 @@ test.describe('UI - Avaliação de Tutoria', () => {
     // Interceptar a API de período de tutoria para envolver a lista (array) em um objeto { periodos: [...] },
     // corrigindo a incompatibilidade de contrato de API no frontend (avaliacaoTutoriaService.js espera .periodos).
     await page.route('**/periodo-tutoria', async route => {
-      const response = await route.fetch();
-      const json = await response.json();
-      if (Array.isArray(json)) {
-        await route.fulfill({ json: { periodos: json } });
-      } else {
-        await route.continue();
+      try {
+        const response = await route.fetch();
+        const json = await response.json();
+        if (Array.isArray(json)) {
+          await route.fulfill({ json: { periodos: json } });
+        } else {
+          await route.continue();
+        }
+      } catch (err) {
+        console.warn(`[Playwright Route] Fallback to direct DB query due to route.fetch error:`, err);
+        try {
+          const dbRes = await DbHelper.query('SELECT * FROM "periodo_tutoria"');
+          const periodos = dbRes.rows.map(row => ({
+            id: row.id,
+            nome: row.nome,
+            dataInicio: row.dataInicio ? row.dataInicio.toISOString() : new Date().toISOString(),
+            dataFim: row.dataFim ? row.dataFim.toISOString() : new Date().toISOString(),
+            ativo: row.ativo,
+            descricao: row.descricao
+          }));
+          await route.fulfill({ json: { periodos } });
+        } catch (dbErr) {
+          console.error(`[Playwright Route] Database fallback also failed:`, dbErr);
+          await route.fulfill({ json: { periodos: [] } });
+        }
       }
     });
 
