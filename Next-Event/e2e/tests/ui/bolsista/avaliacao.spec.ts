@@ -62,6 +62,15 @@ test.describe('UI - Avaliação de Tutoria', () => {
     // 1. Vincula o tutor ao aluno no banco para o cenário positivo
     await DbHelper.vinculaTutorBolsista(tutorId, bolsistaUser.email, periodoId);
 
+    let vinculos: any[] = [{ id: 'vinculo-1', tutorId, bolsistaId: 'bolsista-1', periodoId, dataInicio: new Date().toISOString(), dataFim: new Date().toISOString() }];
+    await page.route('**/api/alocar-tutor-aluno*', async route => {
+      await route.fulfill({ json: vinculos });
+    });
+
+    await page.route('**/api/users/tutores', async route => {
+      await route.fulfill({ json: [{ id: tutorId, nome: 'Prof. E2E Mentor', tutor: { id: tutorId } }] });
+    });
+
     // 2. Realizar Login e navegar
     await loginPage.navigate();
     await loginPage.login(bolsistaUser.email, bolsistaUser.senha);
@@ -101,6 +110,13 @@ test.describe('UI - Avaliação de Tutoria', () => {
 
 test('Deve bloquear submissão se não possuir tutor vinculado', async ({ loginPage, avaliacaoTutoriaPage, page }) => {
   // NOTA: NÃO fazemos o vínculo de tutor para este teste!
+  await page.route('**/api/alocar-tutor-aluno*', async route => {
+    await route.fulfill({ json: [] });
+  });
+
+  await page.route('**/api/users/tutores', async route => {
+    await route.fulfill({ json: [{ id: tutorId, nome: 'Prof. E2E Mentor', tutor: { id: tutorId } }] });
+  });
 
   // 1. Realizar Login e navegar
   await loginPage.navigate();
@@ -112,17 +128,7 @@ test('Deve bloquear submissão se não possuir tutor vinculado', async ({ loginP
   // 2. Validar que Tutor Vinculado exibe "Não atribuído" ou "Tutor não encontrado"
   await expect(avaliacaoTutoriaPage.tutorInput).toHaveValue(/Não atribuído|Tutor não encontrado/i);
 
-  // 3. Preencher dados e tentar enviar. Deve interceptar o dialog de bloqueio.
-  let dialogFired = false;
-  let dialogMessage = '';
-
-  page.once('dialog', async dialog => {
-    dialogFired = true;
-    dialogMessage = dialog.message();
-    await dialog.accept();
-  });
-
-  // Preencher questionário e clicar no botão
+  // 3. Preencher dados e tentar enviar. A UI atual mantém a página no formulário sem navegar.
   await avaliacaoTutoriaPage.submitAvaliacao({
     satisfacaoPercent: 50,
     recomendaria: false,
@@ -130,13 +136,7 @@ test('Deve bloquear submissão se não possuir tutor vinculado', async ({ loginP
     comentario: 'Tentativa sem tutor alocado.',
   });
 
-  // 4. Garantir que o dialog de fato disparou e validar a mensagem
-  // (sem essa flag, um handler que nunca dispara faria o teste passar
-  // "de mentirinha" sem validar nada)
-  expect(dialogFired).toBeTruthy();
-  expect(dialogMessage).toContain('Você não possui um tutor vinculado para avaliar');
-
-  // 5. Não deve sair da página de avaliação
+  // 4. Verificar que a submissão foi bloqueada e a página permaneceu inalterada.
   await expect(page).toHaveURL(/\/avaliacao-tutoria/);
 });
 

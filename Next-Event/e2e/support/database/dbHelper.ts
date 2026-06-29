@@ -147,11 +147,31 @@ export class DbHelper {
    */
   static async vinculaTutorBolsista(tutorId: string, emailBolsista: string, periodoId: string) {
     // 1. Obter ID do bolsista
+    let userId = null;
     const userRes = await pool.query('SELECT id FROM "usuario" WHERE email = $1', [emailBolsista]);
-    if (userRes.rows.length === 0) {
-      throw new Error(`Bolsista com email ${emailBolsista} não encontrado no banco.`);
+    if (userRes.rows.length > 0) {
+      userId = userRes.rows[0].id;
+    } else {
+      const nomeFallback = emailBolsista.split('@')[0].replace(/[^a-zA-Z0-9]/g, ' ').trim() || 'Bolsista E2E';
+      const insertUser = await pool.query(
+        `INSERT INTO "usuario" (id, nome, email, senha, status, "criadoEm", "atualizadoEm")
+         VALUES (gen_random_uuid(), $1, $2, '$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'ATIVO', NOW(), NOW())
+         ON CONFLICT (email) DO NOTHING
+         RETURNING id`,
+        [nomeFallback, emailBolsista]
+      );
+
+      if (insertUser.rows[0]?.id) {
+        userId = insertUser.rows[0].id;
+        console.log(`[Database] Usuário bolsista criado via fallback para: ${emailBolsista}`);
+      } else {
+        const existingUser = await pool.query('SELECT id FROM "usuario" WHERE email = $1', [emailBolsista]);
+        if (existingUser.rows.length === 0) {
+          throw new Error(`Bolsista com email ${emailBolsista} não encontrado no banco.`);
+        }
+        userId = existingUser.rows[0].id;
+      }
     }
-    const userId = userRes.rows[0].id;
 
     const bolsistaRes = await pool.query('SELECT id FROM "bolsista" WHERE "usuarioId" = $1', [userId]);
     let bolsistaId = bolsistaRes.rows[0]?.id;

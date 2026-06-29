@@ -63,12 +63,13 @@ test.describe('UI - Coordenador', () => {
     });
     expect(loginRes.ok()).toBeTruthy();
 
+    const periodoId = await DbHelper.ensurePeriodoTutoria('E2E Coordenador Certificados Periodo');
+    expect(periodoId).toBeTruthy();
+
     const certTitle = `E2E Cert ${Date.now()}`;
     const details = {
       titulo: certTitle,
       categoria: 'EVENTOS' as const,
-      startDate: '2025-05-01',
-      endDate: '2025-05-15',
       horas: '40',
       instituicao: 'UFC',
       descricao: 'Certificado de teste para coordenador',
@@ -80,6 +81,7 @@ test.describe('UI - Coordenador', () => {
     await page.goto('/bolsista');
     await meusCertificadosPage.navigate();
     await meusCertificadosPage.uploadCertificate(pdfPath, details);
+    await meusCertificadosPage.confirmUploadSuccess();
            
     // Reload para garantir que os dados foram salvos
     await page.reload();

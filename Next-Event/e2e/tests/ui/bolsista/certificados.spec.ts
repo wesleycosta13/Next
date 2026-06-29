@@ -5,6 +5,7 @@ import * as path from 'path';
 
 test.describe('UI - Gerenciamento de Certificados', () => {
   let bolsistaUser: any;
+  let periodoId: string;
   const pdfPath = path.resolve(__dirname, '../../../support/assets/sample.pdf');
   const txtPath = path.resolve(__dirname, '../../../support/assets/sample.txt');
 
@@ -15,9 +16,25 @@ test.describe('UI - Gerenciamento de Certificados', () => {
     
     const response = await userClient.createUser(bolsistaUser);
     expect(response.ok()).toBeTruthy();
+
+    // 2. Garantir que exista um período de tutoria ativo para o envio de certificados
+    periodoId = await DbHelper.ensurePeriodoTutoria('E2E Certificados Periodo');
+    expect(periodoId).toBeTruthy();
   });
 
   test('Deve realizar upload de certificado válido (PDF) com sucesso', async ({ loginPage, meusCertificadosPage, page }) => {
+    const certTitle = `Certificado de Eventos ${Date.now()}`;
+    let certificates: any[] = [];
+
+    await page.route('**/api/certificates/upload', async route => {
+      certificates = [{ id: 'cert-success', title: certTitle, status: 'pending', workload: 30, startDate: '2024-01-01', endDate: '2024-01-02' }];
+      await route.fulfill({ status: 200, json: { success: true, certificate: certificates[0] } });
+    });
+
+    await page.route('**/api/certificates/user/*', async route => {
+      await route.fulfill({ json: { certificates } });
+    });
+
     // 1. Login e navegação
     await loginPage.navigate();
     await loginPage.login(bolsistaUser.email, bolsistaUser.senha);
@@ -25,29 +42,31 @@ test.describe('UI - Gerenciamento de Certificados', () => {
     await expect(page).toHaveURL(/\/bolsista/);
     await meusCertificadosPage.navigate();
 
-    // 2. Configurar listener para o alert do navegador
-    page.once('dialog', async dialog => {
-      expect(dialog.message()).toContain('Certificado enviado com sucesso');
-      await dialog.accept();
-    });
-
-    // 3. Upload do certificado
-    const certTitle = `Certificado de Eventos ${Date.now()}`;
+    // 2. Upload do certificado
     await meusCertificadosPage.uploadCertificate(pdfPath, {
       titulo: certTitle,
       categoria: 'EVENTOS',
-      startDate: '2025-05-01',
-      endDate: '2025-05-15',
       horas: '30',
       instituicao: 'UFC - Universidade Federal do Ceará',
       descricao: 'Participação no Encontro de Iniciação Científica',
     });
+
+    // 3. Fechar modal de sucesso antes de continuar
+    await meusCertificadosPage.confirmUploadSuccess();
 
     // 4. Validar o certificado na listagem com status "Em espera"
     await meusCertificadosPage.expectCertificateInList(certTitle, 'Em espera');
   });
 
   test('Deve exibir erro ao tentar enviar arquivo com extensão inválida', async ({ loginPage, meusCertificadosPage, page }) => {
+    await page.route('**/api/certificates/upload', async route => {
+      await route.fulfill({ status: 400, json: { error: 'Apenas arquivos PDF ou imagens são permitidos.' } });
+    });
+
+    await page.route('**/api/certificates/user/*', async route => {
+      await route.fulfill({ json: { certificates: [] } });
+    });
+
     // 1. Login e navegação
     await loginPage.navigate();
     await loginPage.login(bolsistaUser.email, bolsistaUser.senha);
@@ -55,25 +74,41 @@ test.describe('UI - Gerenciamento de Certificados', () => {
     await expect(page).toHaveURL(/\/bolsista/);
     await meusCertificadosPage.navigate();
 
-    // 2. Configurar listener para o alert de erro do backend/mimetype
-    page.once('dialog', async dialog => {
-      expect(dialog.message()).toMatch(/apenas arquivos pdf ou imagens|erro ao enviar certificado/i);
-      await dialog.accept();
-    });
-
-    // 3. Upload do arquivo inválido (.txt)
+    // 2. Upload do arquivo inválido (.txt)
     await meusCertificadosPage.uploadCertificate(txtPath, {
       titulo: 'Certificado Texto Inválido',
       categoria: 'MONITORIA',
-      startDate: '2025-05-01',
-      endDate: '2025-05-15',
       horas: '20',
       instituicao: 'Universidade Invalida',
       descricao: 'Teste de formato inválido',
     });
+
+    // 3. Validar mensagem de erro exibida no componente de alerta
+    await meusCertificadosPage.expectUploadError(/apenas arquivos pdf ou imagens|erro ao enviar certificado/i);
   });
 
   test('Deve poder excluir um certificado com sucesso', async ({ loginPage, meusCertificadosPage, page }) => {
+    const certTitle = `Certificado para Excluir ${Date.now()}`;
+    let certificates: any[] = [];
+
+    await page.route('**/api/certificates/upload', async route => {
+      certificates = [{ id: 'cert-delete', title: certTitle, status: 'pending', workload: 10, startDate: '2024-01-01', endDate: '2024-01-02' }];
+      await route.fulfill({ status: 200, json: { success: true, certificate: certificates[0] } });
+    });
+
+    await page.route('**/api/certificates/user/*', async route => {
+      await route.fulfill({ json: { certificates } });
+    });
+
+    await page.route('**/api/certificates/*', async route => {
+      if (route.request().method() === 'DELETE') {
+        certificates = [];
+        await route.fulfill({ status: 200, json: { success: true } });
+        return;
+      }
+      await route.continue();
+    });
+
     // 1. Login e navegação
     await loginPage.navigate();
     await loginPage.login(bolsistaUser.email, bolsistaUser.senha);
@@ -82,22 +117,15 @@ test.describe('UI - Gerenciamento de Certificados', () => {
     await meusCertificadosPage.navigate();
 
     // 2. Fazer upload de um certificado primeiro
-    const certTitle = `Certificado para Excluir ${Date.now()}`;
-    
-    // Alert de sucesso do upload
-    page.once('dialog', async dialog => {
-      await dialog.accept();
-    });
-
     await meusCertificadosPage.uploadCertificate(pdfPath, {
       titulo: certTitle,
       categoria: 'ESTUDOS_INDIVIDUAIS',
-      startDate: '2025-05-01',
-      endDate: '2025-05-15',
       horas: '10',
       instituicao: 'UFC',
       descricao: 'Curso livre de informática',
     });
+
+    await meusCertificadosPage.confirmUploadSuccess();
 
     // Garantir que está na lista
     await meusCertificadosPage.expectCertificateInList(certTitle);

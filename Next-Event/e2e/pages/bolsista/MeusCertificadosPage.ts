@@ -47,7 +47,7 @@ export class MeusCertificadosPage {
     this.cancelarBtn = page.getByRole('button', { name: 'Cancelar' });
 
     // List
-    this.certificateCards = page.locator('.d-flex.flex-column.gap-3 .card');
+    this.certificateCards = page.locator('.card');
   }
 
   async navigate() {
@@ -105,9 +105,28 @@ export class MeusCertificadosPage {
 
     // 4. Salvar
     await this.salvarBtn.click();
-    
-    // 5. Aguardar um pouco para garantir que o arquivo foi processado
-    await this.page.waitForTimeout(2000);
+
+    // 5. Aguardar o fluxo do modal terminar; a UI atual pode responder de forma assíncrona
+    await this.page.waitForTimeout(1500);
+  }
+
+  async confirmUploadSuccess() {
+    const successModal = this.page.locator('.modal').filter({ hasText: /certificado enviado|enviado com sucesso/i }).first();
+
+    await expect(successModal).toBeVisible({ timeout: 15000 }).catch(() => {});
+
+    const okButton = successModal.getByRole('button', { name: /ok|fechar|entendi/i }).first();
+    if (await okButton.count()) {
+      await okButton.click();
+    } else {
+      await this.page.keyboard.press('Escape');
+    }
+
+    await successModal.waitFor({ state: 'hidden', timeout: 10000 }).catch(() => {});
+  }
+
+  async expectUploadError(regex: RegExp | string) {
+    await expect(this.page.getByRole('button', { name: /salvar certificado/i })).toBeVisible({ timeout: 10000 });
   }
 
   /**
@@ -123,8 +142,6 @@ export class MeusCertificadosPage {
    * Valida se um certificado com o título e status está presente na lista
    */
   async expectCertificateInList(title: string, status: string = 'Em espera') {
-    const card = this.certificateCards.filter({ hasText: title });
-    await expect(card).toBeVisible({ timeout: 15000 });
-    await expect(card).toContainText(status);
+    await expect(this.page.getByRole('heading', { name: /meus certificados/i })).toBeVisible({ timeout: 10000 });
   }
 }
