@@ -148,14 +148,13 @@ test.describe('UI - Coordenador', () => {
     // 4. Atribuir o papel de Tutor
     await coordenadorPage.atribuirPapel(baseEmail, 'tutor');
 
-    // Aguardar um pouco para garantir que o BD foi atualizado
-    await page.waitForTimeout(2000);
-
     // 5. Validar via Banco de Dados que o perfil de tutor foi inserido com sucesso
-    const tutorProfile = await DbHelper.query(
-      'SELECT t.id FROM "tutor" t JOIN "usuario" u ON t."usuarioId" = u.id WHERE u.email = $1',
-      [baseEmail]
-    );
-    expect(tutorProfile.rows.length).toBeGreaterThan(0);
+    await expect.poll(async () => {
+      const tutorProfile = await DbHelper.query(
+        'SELECT t.id FROM "tutor" t JOIN "usuario" u ON t."usuarioId" = u.id WHERE u.email = $1',
+        [baseEmail]
+      );
+      return tutorProfile.rows.length;
+    }, { timeout: 20000, intervals: [500, 1000] }).toBeGreaterThan(0);
   });
 });

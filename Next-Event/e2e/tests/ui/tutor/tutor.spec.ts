@@ -29,9 +29,8 @@ test.describe('UI - Tutor Acadêmico', () => {
 
     cleanupService.addEmail(tutorEmail);
     const tutorRes = await userClient.createUser(tutorPayload);
-    expect(tutorRes.ok()).toBeTruthy();
-    const tutorData = await tutorRes.json();
-    tutorId = tutorData.usuario.tutor.id;
+    expect(tutorRes.ok(), `Falha ao criar usuário tutor: ${await tutorRes.text()}`).toBeTruthy();
+    tutorId = await DbHelper.ensureTutor(tutorNome, tutorEmail);
 
     // 2. Criar usuário bolsista para vincular a este tutor
     bolsistaUser = buildUserPayload();

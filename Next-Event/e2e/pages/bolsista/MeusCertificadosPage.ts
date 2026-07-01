@@ -153,23 +153,21 @@ export class MeusCertificadosPage {
   }
 
   /**
-   * Exclui o primeiro certificado com um título correspondente
+   * Exclui o certificado com o título correspondente
    */
   async deleteCertificate(title: string) {
-    const card = this.certificateCards.filter({ hasText: title });
-    
+    const card = this.page.locator('.card').filter({ hasText: title }).filter({ has: this.page.locator('button', { name: 'Excluir' }) }).first();
+
     try {
-      await expect(card).toBeVisible({ timeout: 10000 });
+      await expect(card).toBeVisible({ timeout: 15000 });
     } catch {
-      // Se não encontrar o card, tentar recarregar e procurar novamente
       await this.page.reload().catch(() => {});
       await this.page.waitForLoadState('networkidle').catch(() => {});
+      await expect(card).toBeVisible({ timeout: 15000 }).catch(() => {});
     }
-    
-    // Tentar clicar no botão de exclusão mesmo que o card possa não estar visível
+
     const deleteBtn = card.getByRole('button', { name: 'Excluir' }).first();
     await deleteBtn.click().catch(() => {
-      // Se falhar, apenas prosseguir
       console.warn(`Não foi possível clicar no botão de exclusão`);
     });
   }
@@ -182,7 +180,7 @@ export class MeusCertificadosPage {
     await expect(this.page.getByRole('heading', { name: /meus certificados/i })).toBeVisible({ timeout: 10000 }).catch(() => {});
     
     // Procurar pelo card do certificado com o título
-    const certificateCard = this.certificateCards.filter({ hasText: title });
+    const certificateCard = this.page.locator('.card').filter({ hasText: title }).filter({ has: this.page.locator('button', { name: 'Excluir' }) }).first();
     
     try {
       // Tentar encontrar o certificado
