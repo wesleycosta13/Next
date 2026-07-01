@@ -26,39 +26,95 @@ export class DbHelper {
    * Remove um usuário e todas as suas dependências do banco de dados de forma segura.
    */
   static async deleteUserByEmail(email: string) {
+    const client = await pool.connect();
+
     try {
-      // 1. Buscar ID do usuário e seus perfis de bolsista/tutor
-      const userRes = await pool.query('SELECT id FROM "usuario" WHERE email = $1', [email]);
+      const userRes = await client.query('SELECT id FROM "usuario" WHERE email = $1', [email]);
       if (userRes.rows.length === 0) return;
 
       const userId = userRes.rows[0].id;
 
-      const bolsistaRes = await pool.query('SELECT id FROM "bolsista" WHERE "usuarioId" = $1', [userId]);
-      const tutorRes = await pool.query('SELECT id FROM "tutor" WHERE "usuarioId" = $1', [userId]);
+      const bolsistaRes = await client.query('SELECT id FROM "bolsista" WHERE "usuarioId" = $1', [userId]);
+      const tutorRes = await client.query('SELECT id FROM "tutor" WHERE "usuarioId" = $1', [userId]);
+      const coordenadorRes = await client.query('SELECT id FROM "coordenador" WHERE "usuarioId" = $1', [userId]);
+      const alunoRes = await client.query('SELECT id FROM "aluno" WHERE "usuarioId" = $1', [userId]);
 
       const bolsistaId = bolsistaRes.rows[0]?.id;
       const tutorId = tutorRes.rows[0]?.id;
+      const coordenadorId = coordenadorRes.rows[0]?.id;
+      const alunoId = alunoRes.rows[0]?.id;
 
-      // 2. Deletar vínculos de alocação de tutor e formulários de acompanhamento
+      await client.query('BEGIN');
+
+      const relatorioIdsToDelete = new Set<string>();
+
       if (bolsistaId) {
-        await pool.query('DELETE FROM "alocar_tutor_aluno" WHERE "bolsistaId" = $1', [bolsistaId]);
-        await pool.query('DELETE FROM "certificado" WHERE "bolsistaId" = $1', [bolsistaId]);
-        await pool.query('DELETE FROM "form_acompanhamento" WHERE "bolsistaId" = $1', [bolsistaId]);
+        const relatorioAlunoRes = await client.query('SELECT "relatorioId" FROM "relatorio_aluno" WHERE "bolsistaId" = $1', [bolsistaId]);
+        const relatorioAvaliacaoRes = await client.query('SELECT "relatorioId" FROM "relatorio_avaliacao" WHERE "bolsistaId" = $1', [bolsistaId]);
+        const certificadoRes = await client.query('SELECT id FROM "certificado" WHERE "bolsistaId" = $1', [bolsistaId]);
+        const certificadoIds = certificadoRes.rows.map((row) => row.id);
+
+        relatorioAlunoRes.rows.forEach((row) => relatorioIdsToDelete.add(row.relatorioId));
+        relatorioAvaliacaoRes.rows.forEach((row) => relatorioIdsToDelete.add(row.relatorioId));
+
+        if (certificadoIds.length > 0) {
+          const relatorioCertificadoRes = await client.query(
+            'SELECT "relatorioId" FROM "relatorio_certificado" WHERE "certificadoId" = ANY($1::uuid[])',
+            [certificadoIds]
+          );
+          relatorioCertificadoRes.rows.forEach((row) => relatorioIdsToDelete.add(row.relatorioId));
+        }
+
+        await client.query('DELETE FROM "relatorio_aluno" WHERE "bolsistaId" = $1', [bolsistaId]);
+        await client.query('DELETE FROM "relatorio_avaliacao" WHERE "bolsistaId" = $1', [bolsistaId]);
+        await client.query('DELETE FROM "relatorio_certificado" WHERE "certificadoId" IN (SELECT id FROM "certificado" WHERE "bolsistaId" = $1)', [bolsistaId]);
+        await client.query('DELETE FROM "alocar_tutor_aluno" WHERE "bolsistaId" = $1', [bolsistaId]);
+        await client.query('DELETE FROM "certificado" WHERE "bolsistaId" = $1', [bolsistaId]);
+        await client.query('DELETE FROM "form_acompanhamento" WHERE "bolsistaId" = $1', [bolsistaId]);
+      }
+
+      if (tutorId) {
+        const relatorioTutorRes = await client.query('SELECT "relatorioId" FROM "relatorio_tutor" WHERE "tutorId" = $1', [tutorId]);
+        const relatorioAcompanhamentoRes = await client.query('SELECT "relatorioId" FROM "relatorio_acompanhamento" WHERE "tutorId" = $1', [tutorId]);
+
+        relatorioTutorRes.rows.forEach((row) => relatorioIdsToDelete.add(row.relatorioId));
+        relatorioAcompanhamentoRes.rows.forEach((row) => relatorioIdsToDelete.add(row.relatorioId));
+
+        await client.query('DELETE FROM "relatorio_tutor" WHERE "tutorId" = $1', [tutorId]);
+        await client.query('DELETE FROM "relatorio_acompanhamento" WHERE "tutorId" = $1', [tutorId]);
+        await client.query('DELETE FROM "alocar_tutor_aluno" WHERE "tutorId" = $1', [tutorId]);
+        await client.query('DELETE FROM "form_acompanhamento" WHERE "tutorId" = $1', [tutorId]);
+      }
+
+      if (relatorioIdsToDelete.size > 0) {
+        await client.query('DELETE FROM "relatorio" WHERE id = ANY($1::uuid[])', [Array.from(relatorioIdsToDelete)]);
+      }
+
+      await client.query('DELETE FROM "avaliacao_tutoria" WHERE "usuarioId" = $1', [userId]);
+      await client.query('DELETE FROM "notification" WHERE "userId" = $1', [userId]);
+
+      if (coordenadorId) {
+        await client.query('DELETE FROM "coordenador" WHERE id = $1', [coordenadorId]);
+      }
+      if (alunoId) {
+        await client.query('DELETE FROM "aluno" WHERE id = $1', [alunoId]);
       }
       if (tutorId) {
-        await pool.query('DELETE FROM "alocar_tutor_aluno" WHERE "tutorId" = $1', [tutorId]);
-        await pool.query('DELETE FROM "form_acompanhamento" WHERE "tutorId" = $1', [tutorId]);
+        await client.query('DELETE FROM "tutor" WHERE id = $1', [tutorId]);
+      }
+      if (bolsistaId) {
+        await client.query('DELETE FROM "bolsista" WHERE id = $1', [bolsistaId]);
       }
 
-      // 3. Deletar avaliações de tutoria e notificações associadas
-      await pool.query('DELETE FROM "avaliacao_tutoria" WHERE "usuarioId" = $1', [userId]);
-      await pool.query('DELETE FROM "notification" WHERE "userId" = $1', [userId]);
+      await client.query('DELETE FROM "usuario" WHERE id = $1', [userId]);
+      await client.query('COMMIT');
 
-      // 4. Deletar o próprio usuário (Cascades no bolsista/tutor/coordenador se configurado na FK, mas fazemos explícito por segurança)
-      await pool.query('DELETE FROM "usuario" WHERE id = $1', [userId]);
       console.log(`[Database] Usuário e dados vinculados removidos com sucesso: ${email}`);
     } catch (err) {
+      await client.query('ROLLBACK');
       console.error(`[Database Error] Erro ao deletar usuário ${email}:`, err);
+    } finally {
+      client.release();
     }
   }
 
