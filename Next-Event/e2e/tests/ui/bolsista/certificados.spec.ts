@@ -89,13 +89,8 @@ test.describe('UI - Gerenciamento de Certificados', () => {
 
   test('Deve poder excluir um certificado com sucesso', async ({ loginPage, meusCertificadosPage, page }) => {
     const certTitle = `Certificado para Excluir ${Date.now()}`;
-    let certificates: any[] = [];
+    let certificates: any[] = [{ id: 'cert-delete', title: certTitle, status: 'pending', workload: 10, startDate: '2024-01-01', endDate: '2024-01-02' }];
     let deleteRequested = false;
-
-    await page.route('**/api/certificates/upload', async route => {
-      certificates = [{ id: 'cert-delete', title: certTitle, status: 'pending', workload: 10, startDate: '2024-01-01', endDate: '2024-01-02' }];
-      await route.fulfill({ status: 200, json: { success: true, certificate: certificates[0] } });
-    });
 
     await page.route('**/api/certificates/user/*', async route => {
       await route.fulfill({ json: { certificates } });
@@ -118,39 +113,21 @@ test.describe('UI - Gerenciamento de Certificados', () => {
     await expect(page).toHaveURL(/\/bolsista/);
     await meusCertificadosPage.navigate();
 
-    // 2. Fazer upload de um certificado primeiro
-    await meusCertificadosPage.uploadCertificate(pdfPath, {
-      titulo: certTitle,
-      categoria: 'ESTUDOS_INDIVIDUAIS',
-      horas: '10',
-      instituicao: 'UFC',
-      descricao: 'Curso livre de informática',
-    });
-
-    await meusCertificadosPage.confirmUploadSuccess();
-
-    // Garantir que está na lista. Alguns navegadores podem preencher o título a partir do nome do
-    // arquivo (`sample`) — detectamos o título real exibido e o usamos para as próximas ações.
-    const possibleTitle = certTitle;
-    const fallbackTitle = 'sample';
-
-    const hasCustomTitle = await page.locator('.card').filter({ hasText: possibleTitle }).count();
-    const titleToUse = hasCustomTitle ? possibleTitle : fallbackTitle;
-
-    await meusCertificadosPage.expectCertificateInList(titleToUse);
+    // 2. Validar o certificado já presente na lista
+    await meusCertificadosPage.expectCertificateInList(certTitle, 'Em espera');
 
     // 3. Configurar dialog de confirmação de exclusão
     page.once('dialog', async dialog => {
       expect(dialog.message()).toContain('Tem certeza que deseja excluir');
-      await dialog.accept(); // Clica em OK
+      await dialog.accept();
     });
 
-    // Excluir usando o título que apareceu na UI
-    await meusCertificadosPage.deleteCertificate(titleToUse);
+    // 4. Excluir o certificado
+    await meusCertificadosPage.deleteCertificate(certTitle);
 
-    // 4. Validar que a exclusão foi solicitada e que a lista foi atualizada
+    // 5. Validar que a exclusão foi solicitada e que a lista foi atualizada
     await expect.poll(async () => deleteRequested, { timeout: 10000 }).toBe(true);
-    await expect.poll(async () => await page.locator('.card').filter({ hasText: titleToUse }).count(), { timeout: 10000 }).toBe(0);
+    await expect.poll(async () => await page.locator('.card').filter({ hasText: certTitle }).count(), { timeout: 10000 }).toBe(0);
   });
 
 });

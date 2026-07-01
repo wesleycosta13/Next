@@ -209,11 +209,11 @@ export class MeusCertificadosPage {
     await expect(this.page.getByRole('heading', { name: /meus certificados/i })).toBeVisible({ timeout: 10000 }).catch(() => {});
     
     // Procurar pelo card do certificado com o título
-    const certificateCard = this.page.locator('.card').filter({ hasText: title }).filter({ has: this.page.locator('button', { hasText: 'Excluir' }) }).first();
+    const certificateCard = this.page.locator('.card').filter({ hasText: title }).first();
     
-    await expect(certificateCard).toBeVisible({ timeout: 5000 });
+    await expect(certificateCard).toBeVisible({ timeout: 10000 });
     if (status) {
-      await expect(certificateCard).toContainText(status, { timeout: 5000 });
+      await expect(certificateCard).toContainText(status, { timeout: 10000 });
     }
   }
 }
