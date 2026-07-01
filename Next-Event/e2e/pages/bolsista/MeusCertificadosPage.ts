@@ -211,27 +211,9 @@ export class MeusCertificadosPage {
     // Procurar pelo card do certificado com o título
     const certificateCard = this.page.locator('.card').filter({ hasText: title }).filter({ has: this.page.locator('button', { hasText: 'Excluir' }) }).first();
     
-    try {
-      // Tentar encontrar o certificado
-      await expect(certificateCard).toBeVisible({ timeout: 5000 });
-      
-      // Se encontrou, validar o status se necessário
-      if (status) {
-        await expect(certificateCard).toContainText(status, { timeout: 5000 }).catch(() => {});
-      }
-    } catch {
-      // Se não encontrar após a primeira tentativa, fazer reload
-      await this.page.reload().catch(() => {});
-      await this.page.waitForLoadState('networkidle').catch(() => {});
-      await this.page.waitForTimeout(1000);
-      
-      // Tentar encontrar novamente
-      try {
-        await expect(certificateCard).toBeVisible({ timeout: 10000 });
-      } catch {
-        // Se ainda não encontrar, apenas registrar - pode estar em processamento assíncrono
-        console.warn(`Certificado "${title}" não foi encontrado na lista após reload. Prosseguindo..`);
-      }
+    await expect(certificateCard).toBeVisible({ timeout: 5000 });
+    if (status) {
+      await expect(certificateCard).toContainText(status, { timeout: 5000 });
     }
   }
 }

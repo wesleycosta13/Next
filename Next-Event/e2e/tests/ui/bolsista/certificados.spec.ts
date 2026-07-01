@@ -129,7 +129,7 @@ test.describe('UI - Gerenciamento de Certificados', () => {
 
     await meusCertificadosPage.confirmUploadSuccess();
 
-    // Garantir que está na lista. Alguns navegadores preenchem o título a partir do nome do
+    // Garantir que está na lista. Alguns navegadores podem preencher o título a partir do nome do
     // arquivo (`sample`) — detectamos o título real exibido e o usamos para as próximas ações.
     const possibleTitle = certTitle;
     const fallbackTitle = 'sample';
@@ -138,9 +138,6 @@ test.describe('UI - Gerenciamento de Certificados', () => {
     const titleToUse = hasCustomTitle ? possibleTitle : fallbackTitle;
 
     await meusCertificadosPage.expectCertificateInList(titleToUse);
-
-    // Pause here to inspect the page in Playwright Inspector before proceeding with deletion
-    await page.pause();
 
     // 3. Configurar dialog de confirmação de exclusão
     page.once('dialog', async dialog => {

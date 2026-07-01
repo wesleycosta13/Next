@@ -31,7 +31,7 @@ export default defineConfig({
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
     /* Base URL to use in actions like `await page.goto('')`. */
-    baseURL: process.env.BASE_URL || 'http://localhost:4000',
+    baseURL: process.env.BASE_URL || 'http://127.0.0.1:4000',
 
     /* Collect trace on failure */
     trace: 'retain-on-failure',
@@ -46,7 +46,7 @@ export default defineConfig({
       name: 'api',
       testMatch: '**/tests/api/**/*.spec.ts',
       use: {
-        baseURL: process.env.API_URL || 'http://localhost:3000',
+        baseURL: process.env.API_URL || 'http://127.0.0.1:3000',
       },
     },
 
