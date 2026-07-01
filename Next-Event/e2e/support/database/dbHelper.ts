@@ -84,6 +84,71 @@ export class DbHelper {
   }
 
   /**
+   * Garante a existência de um usuário base no banco para testes.
+   */
+  static async ensureUsuario(userId: string, fallbackName?: string, fallbackEmail?: string): Promise<void> {
+    const userExists = await pool.query('SELECT id FROM "usuario" WHERE id = $1', [userId]);
+    if (userExists.rows[0]?.id) {
+      return;
+    }
+
+    const name = fallbackName || `Usuário E2E ${userId.slice(0, 8)}`;
+    const email = fallbackEmail || `${userId.slice(0, 8)}@e2e.local`;
+
+    await pool.query(
+      `INSERT INTO "usuario" (id, nome, email, senha, status, "criadoEm", "atualizadoEm") 
+       VALUES ($1, $2, $3, '$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'ATIVO', NOW(), NOW())`,
+      [userId, name, email]
+    );
+  }
+
+  /**
+   * Garante a existência de um perfil de bolsista para um usuário.
+   */
+  static async ensureBolsista(userId: string): Promise<string> {
+    await this.ensureUsuario(userId);
+
+    const bolsistaRes = await pool.query('SELECT id FROM "bolsista" WHERE "usuarioId" = $1', [userId]);
+    if (bolsistaRes.rows[0]?.id) {
+      return bolsistaRes.rows[0].id;
+    }
+
+    const insertRes = await pool.query(
+      `INSERT INTO "bolsista" (id, "usuarioId", "anoIngresso", curso) 
+       VALUES (gen_random_uuid(), $1, 2024, 'Ciência da Computação') 
+       RETURNING id`,
+      [userId]
+    );
+
+    return insertRes.rows[0].id;
+  }
+
+  /**
+   * Garante a existência de uma avaliação de tutoria para um usuário/período.
+   */
+  static async ensureAvaliacaoTutoria(usuarioId: string, periodoId: string, tipoAvaliador: string, conteudo: Record<string, any> = {}) {
+    await this.ensureUsuario(usuarioId);
+
+    const existing = await pool.query(
+      'SELECT id FROM "avaliacao_tutoria" WHERE "usuarioId" = $1 AND "periodoId" = $2 AND "tipoAvaliador" = $3',
+      [usuarioId, periodoId, tipoAvaliador]
+    );
+
+    if (existing.rows[0]?.id) {
+      return existing.rows[0].id;
+    }
+
+    const insertRes = await pool.query(
+      `INSERT INTO "avaliacao_tutoria" (id, "usuarioId", "periodoId", "tipoAvaliador", conteudo, status, "dataEnvio", "dataAtualizacao") 
+       VALUES (gen_random_uuid(), $1, $2, $3, $4, 'RASCUNHO', NOW(), NOW()) 
+       RETURNING id`,
+      [usuarioId, periodoId, tipoAvaliador, JSON.stringify(conteudo)]
+    );
+
+    return insertRes.rows[0].id;
+  }
+
+  /**
    * Garante a existência de um Tutor com usuário e perfil criados.
    */
   static async ensureTutor(nome: string, email: string): Promise<string> {

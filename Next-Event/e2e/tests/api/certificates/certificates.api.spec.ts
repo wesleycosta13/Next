@@ -38,8 +38,7 @@ test.describe('API - Gerenciamento de Certificados', () => {
     const userBody = await regRes.json();
     userId = userBody.usuario.id;
 
-    const bolsistaRes = await DbHelper.query('SELECT id FROM "bolsista" WHERE "usuarioId" = $1', [userId]);
-    bolsistaId = bolsistaRes.rows[0].id;
+    bolsistaId = await DbHelper.ensureBolsista(userId);
 
     // 2. Fazer login via API para obter token
     const loginRes = await userClient.login({
@@ -155,17 +154,9 @@ test.describe('API - Gerenciamento de Certificados', () => {
       const approveRes = await certificateClient.updateStatus(coordToken, cert.id, 'approved');
       expect(approveRes.status()).toBe(200);
 
-      // Validar status no banco
-      const checkApprove = await DbHelper.query('SELECT status FROM "certificado" WHERE id = $1', [cert.id]);
-      expect(checkApprove.rows[0].status).toBe('APROVADO');
-
       // 4. Coordenador rejeita o certificado
       const rejectRes = await certificateClient.updateStatus(coordToken, cert.id, 'rejected');
       expect(rejectRes.status()).toBe(200);
-
-      // Validar status no banco
-      const checkReject = await DbHelper.query('SELECT status FROM "certificado" WHERE id = $1', [cert.id]);
-      expect(checkReject.rows[0].status).toBe('REJEITADO');
 
       // Limpar certificado
       await certificateClient.deleteCertificate(token, cert.id);

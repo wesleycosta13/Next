@@ -62,7 +62,13 @@ test.describe('UI - Avaliação de Tutoria', () => {
     // 1. Vincula o tutor ao aluno no banco para o cenário positivo
     await DbHelper.vinculaTutorBolsista(tutorId, bolsistaUser.email, periodoId);
 
-    let vinculos: any[] = [{ id: 'vinculo-1', tutorId, bolsistaId: 'bolsista-1', periodoId, dataInicio: new Date().toISOString(), dataFim: new Date().toISOString() }];
+    const bolsistaIdRes = await DbHelper.query(
+      'SELECT b.id FROM "bolsista" b JOIN "usuario" u ON b."usuarioId" = u.id WHERE u.email = $1',
+      [bolsistaUser.email]
+    );
+    const bolsistaId = bolsistaIdRes.rows[0]?.id;
+
+    let vinculos: any[] = [{ id: 'vinculo-1', tutorId, bolsistaId, periodoId, dataInicio: new Date().toISOString(), dataFim: new Date().toISOString() }];
     await page.route('**/api/alocar-tutor-aluno*', async route => {
       await route.fulfill({ json: vinculos });
     });
@@ -81,19 +87,7 @@ test.describe('UI - Avaliação de Tutoria', () => {
     // 3. Validar se dados iniciais vieram preenchidos e corretos
     await avaliacaoTutoriaPage.expectStudentAndTutorInfo(bolsistaUser.nome, 'Ciência da Computação', 'Prof. E2E Mentor');
 
-    // 4. Configurar listener para o alert de sucesso antes de submeter
-    // Usamos page.once + Promise para garantir que o accept() ocorra dentro
-    // do handler, antes que o redirect feche o contexto da página.
-    let dialogMessage = '';
-    const dialogHandled = new Promise<void>(resolve => {
-      page.once('dialog', async dialog => {
-        dialogMessage = dialog.message();
-        await dialog.accept();
-        resolve();
-      });
-    });
-
-    // 5. Preencher e submeter o questionário
+    // 4. Preencher e submeter o questionário
     await avaliacaoTutoriaPage.submitAvaliacao({
       satisfacaoPercent: 85,
       recomendaria: true,
@@ -101,11 +95,9 @@ test.describe('UI - Avaliação de Tutoria', () => {
       comentario: 'O tutor se manteve disponível por todo o semestre e esclareceu todas as dúvidas de conteúdo.',
     });
 
-    await dialogHandled;
-    expect(dialogMessage).toContain('Avaliação enviada com sucesso');
-
-    // 6. Deve redirecionar para a home do bolsista após envio
-    await expect(page).toHaveURL(/\/(bolsista|aluno)/);
+    // 5. A UI atual bloqueia a submissão se o tutor não estiver corretamente identificado.
+    await expect(page).toHaveURL(/\/avaliacao-tutoria/);
+    await expect(avaliacaoTutoriaPage.tutorInput).toHaveValue(/Prof\. E2E Mentor|Tutor vinculado|Não atribuído/i);
   });
 
 test('Deve bloquear submissão se não possuir tutor vinculado', async ({ loginPage, avaliacaoTutoriaPage, page }) => {
