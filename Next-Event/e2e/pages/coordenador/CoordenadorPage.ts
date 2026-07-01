@@ -62,9 +62,9 @@ export class CoordenadorPage {
 
     // Atribuir Papel Page
     this.usersTable = page.locator('table');
-    this.roleSelect = page.locator('select');
-    this.confirmarAlteracoesBtn = page.getByRole('button', { name: 'Confirmar Alterações' });
-    this.removerPapelBtn = page.getByRole('button', { name: 'Remover Papel' });
+    this.roleSelect = page.locator('div.modal.show select');
+    this.confirmarAlteracoesBtn = page.locator('div.modal.show').getByRole('button', { name: /Confirmar Alterações/i });
+    this.removerPapelBtn = page.locator('div.modal.show').getByRole('button', { name: /Remover Papel/i });
   }
 
   async navigateToHome() {
@@ -158,18 +158,28 @@ export class CoordenadorPage {
   }
 
   async atribuirPapel(email: string, papel: 'tutor' | 'bolsista' | 'coordenador') {
-    const row = this.page.locator('tr', { hasText: email });
+    const row = this.page.locator('table tbody tr', { hasText: email });
     await expect(row).toBeVisible({ timeout: 15000 });
     await row.getByRole('button', { name: /alterar papel/i }).click();
 
+    const modal = this.page.locator('div.modal.show');
+    await expect(modal).toBeVisible({ timeout: 15000 });
+    await expect(this.roleSelect).toBeVisible({ timeout: 15000 });
     await this.roleSelect.selectOption(papel);
 
-    // Escutando alerta de sucesso da atribuição
     this.page.once('dialog', async dialog => {
       expect(dialog.message()).toContain('executado com sucesso');
       await dialog.accept();
     });
 
-    await this.confirmarAlteracoesBtn.click();
+    const [response] = await Promise.all([
+      this.page.waitForResponse(resp =>
+        resp.url().includes('/api/users/') && resp.request().method() === 'PATCH'
+      ),
+      this.confirmarAlteracoesBtn.click()
+    ]);
+
+    expect(response.status()).toBe(204);
+    await expect(modal).toBeHidden({ timeout: 15000 }).catch(() => {});
   }
 }

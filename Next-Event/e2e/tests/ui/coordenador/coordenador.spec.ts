@@ -146,7 +146,21 @@ test.describe('UI - Coordenador', () => {
     await coordenadorPage.navigateToAtribuirPapel();
 
     // 4. Atribuir o papel de Tutor
+    page.on('console', msg => console.log('PAGE LOG>', msg.type(), msg.text()));
+    page.on('pageerror', error => console.log('PAGE ERROR>', error.message));
+    page.on('requestfailed', request => {
+      if (request.url().includes('/api/users/')) {
+        console.log('Request failed:', request.url(), request.failure()?.errorText);
+      }
+    });
+    page.on('response', response => {
+      if (response.url().includes('/api/users/') && response.request().method() === 'PATCH') {
+        console.log('Patch response:', response.status(), response.url());
+      }
+    });
+
     await coordenadorPage.atribuirPapel(baseEmail, 'tutor');
+    await page.screenshot({ path: 'debug-coordenador-after-atribuir.png', fullPage: false });
 
     // 5. Validar via Banco de Dados que o perfil de tutor foi inserido com sucesso
     await expect.poll(async () => {

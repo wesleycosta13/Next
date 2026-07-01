@@ -1,12 +1,11 @@
 import { defineConfig, devices } from '@playwright/test';
-import CleanupReporter from './reporters/cleanupReporter';
+import path from 'path';
+require('dotenv').config({ path: path.resolve(__dirname, '.env') });
 
 /**
  * Read environment variables from file.
  * https://github.com/motdotla/dotenv
  */
-import path from 'path';
-require('dotenv').config({ path: path.resolve(__dirname, '.env') });
 
 /**
  * See https://playwright.dev/docs/test-configuration.
